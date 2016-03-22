@@ -10,6 +10,20 @@ Build-Depends: debhelper (>= 9),
                python-setuptools,
                python3-all,
                python3-setuptools,
+Build-Depends-Indep: python-httplib2 (>= 0.9.1),
+                     python-nose,
+                     python-pyasn1,
+                     python-pyasn1-modules (>= 0.0.5),
+                     python-rsa (>= 3.1.4),
+                     python-six (>= 1.6.1),
+                     python-uritemplate,
+                     python3-httplib2 (>= 0.9.1),
+                     python3-nose,
+                     python3-pyasn1,
+                     python3-pyasn1-modules (>= 0.0.5),
+                     python3-rsa (>= 3.1.4),
+                     python3-six (>= 1.6.1),
+                     python3-uritemplate,
 Standards-Version: 3.9.6
 Vcs-Browser: https://anonscm.debian.org/cgit/openstack/python-oauth2client.git
 Vcs-Git: https://alioth.debian.org/anonscm/git/openstack/python-oauth2client.git
@@ -17,7 +31,12 @@ Homepage: https://github.com/google/oauth2client
 
 Package: python-oauth2client
 Architecture: all
-Depends: python-uritemplate,
+Depends: python-httplib2 (>= 0.9.1),
+         python-pyasn1,
+         python-pyasn1-modules (>= 0.0.5),
+         python-rsa (>= 3.1.4),
+         python-six (>= 1.6.1),
+         python-uritemplate,
          ${misc:Depends},
          ${python:Depends},
 Recommends: ${python:Recommends},
@@ -39,7 +58,12 @@ Description: OAuth 2.0 client library - Python 2.7
 
 Package: python3-oauth2client
 Architecture: all
-Depends: python3-uritemplate,
+Depends: python3-httplib2 (>= 0.9.1),
+         python3-pyasn1,
+         python3-pyasn1-modules (>= 0.0.5),
+         python3-rsa (>= 3.1.4),
+         python3-six (>= 1.6.1),
+         python3-uritemplate,
          ${misc:Depends},
          ${python3:Depends},
 Recommends: ${python:Recommends},

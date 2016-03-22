@@ -5,6 +5,7 @@ python-oauth2client (2.0.1-1) experimental; urgency=medium
   * Move package to PKG OpenStack:
     - Updated VCS URLs.
     - Update maintainer field.
+  * Updated (build-)depends.
 
  -- Thomas Goirand <zigo@debian.org>  Tue, 22 Mar 2016 10:01:15 +0100
 
