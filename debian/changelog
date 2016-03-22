@@ -1,6 +1,7 @@
 python-oauth2client (2.0.1-1) experimental; urgency=medium
 
   * New upstream release.
+  * Ran wrap-and-sort -t -a.
 
  -- Thomas Goirand <zigo@debian.org>  Tue, 22 Mar 2016 10:01:15 +0100
 
