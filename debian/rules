@@ -27,6 +27,7 @@ ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
 		echo "===> Testing with python$$i (python$$PYMAJOR)" ; \
 		PYTHONPATH=$(CURDIR) python$$i -m nose --ignore-files=test_appengine\.py --ignore-files=test__appengine_ndb\.py ; \
 	done
+endif
 
 # Commands not to run
 override_dh_installcatalogs:
