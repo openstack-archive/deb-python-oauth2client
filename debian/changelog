@@ -6,6 +6,7 @@ python-oauth2client (2.0.1-1) experimental; urgency=medium
     - Updated VCS URLs.
     - Update maintainer field.
   * Updated (build-)depends.
+  * Running unit tests with nose (and added needed build-depends-indep).
 
  -- Thomas Goirand <zigo@debian.org>  Tue, 22 Mar 2016 10:01:15 +0100
 
