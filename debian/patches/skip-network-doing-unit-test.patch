@@ -1,0 +1,15 @@
+Description: Skip networking doing unit test
+Author: Thomas Goirand <zigo@debian.org>
+Forwarded: not-needed
+Last-Update: 2016-03-22
+
+--- python-oauth2client-2.0.1.orig/tests/test_tools.py
++++ python-oauth2client-2.0.1/tests/test_tools.py
+@@ -9,6 +9,7 @@ import threading
+ class TestClientRedirectServer(unittest.TestCase):
+     """Test the ClientRedirectServer and ClientRedirectHandler classes."""
+ 
++    @unittest.skip("Skipped in Debian: doing network access")
+     def test_ClientRedirectServer(self):
+         # create a ClientRedirectServer and run it in a thread to listen
+         # for a mock GET request with the access token
