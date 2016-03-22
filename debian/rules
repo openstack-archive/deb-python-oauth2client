@@ -6,6 +6,11 @@ PYTHON3S:=$(shell py3versions -vr)
 UPSTREAM_GIT = https://github.com/google/oauth2client.git
 include /usr/share/openstack-pkg-tools/pkgos.make
 
+export http_proxy=127.0.0.1:9
+export https_proxy=127.0.0.1:9
+export HTTP_PROXY=127.0.0.1:9
+export HTTPS_PROXY=127.0.0.1:9
+
 %:
 	dh $@ --buildsystem=python_distutils --with python2,python3
 
