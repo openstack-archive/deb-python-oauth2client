@@ -1,0 +1,27 @@
+python-oauth2client (1.4.12-0.1) unstable; urgency=low
+
+  * update to latest upstream version v1.4.12
+  * update URLs: Homepage, Vcs-*, debian/watch
+  * NMU to help fix python-googleapi #789253
+
+ -- Hans-Christoph Steiner <hans@eds.org>  Mon, 20 Jul 2015 10:47:56 -0700
+
+python-oauth2client (1.2-3) unstable; urgency=medium
+
+  * Fixes VCS URLs.
+  * Added Python 3 support.
+  * Standards-Version is now 3.9.5
+
+ -- Thomas Goirand <zigo@debian.org>  Thu, 28 Aug 2014 23:28:56 +0000
+
+python-oauth2client (1.2-2) unstable; urgency=low
+
+  * Removes embedded uritemplate folder from binary.
+
+ -- Thomas Goirand <zigo@debian.org>  Mon, 02 Sep 2013 09:00:22 +0000
+
+python-oauth2client (1.2-1) unstable; urgency=low
+
+  * Initial release. (Closes: #719971)
+
+ -- Thomas Goirand <zigo@debian.org>  Sat, 17 Aug 2013 11:12:18 +0200
