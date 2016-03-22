@@ -25,7 +25,7 @@ ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
 	set -e ; set -x ; for i in 2.7 $(PYTHON3S) ; do \
 		PYMAJOR=`echo $$i | cut -d'.' -f1` ; \
 		echo "===> Testing with python$$i (python$$PYMAJOR)" ; \
-		DJANGO_SETTINGS_MODULE=tests.contrib.test_django_settings PYTHONPATH=$(CURDIR) python$$i -m nose --ignore-files=test_appengine\.py --ignore-files=test__appengine_ndb\.py ; \
+		DJANGO_SETTINGS_MODULE=tests.contrib.test_django_settings PYTHONPATH=$(CURDIR) python$$i -m nose -v --ignore-files=test_appengine\.py --ignore-files=test__appengine_ndb\.py ; \
 	done
 endif
 
