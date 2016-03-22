@@ -1,28 +1,27 @@
 Source: python-oauth2client
 Section: python
 Priority: optional
-Maintainer: PKG Cloud <cloud-packages@lists.alioth.debian.org>
+Maintainer: PKG OpenStack <openstack-devel@lists.alioth.debian.org>
 Uploaders: Jimmy Kaplowitz <jimmy@debian.org>,
            Thomas Goirand <zigo@debian.org>,
 Build-Depends: debhelper (>= 9),
                openstack-pkg-tools,
-               python-all (>= 2.6.6-3~),
+               python-all,
                python-setuptools,
-               python3-all (>= 3.3),
+               python3-all,
                python3-setuptools,
 Standards-Version: 3.9.6
-Vcs-Browser: https://anonscm.debian.org/cgit/cloud/python-oauth2client.git
-Vcs-Git: https://alioth.debian.org/anonscm/git/cloud/python-oauth2client.git
+Vcs-Browser: https://anonscm.debian.org/cgit/openstack/python-oauth2client.git
+Vcs-Git: https://alioth.debian.org/anonscm/git/openstack/python-oauth2client.git
 Homepage: https://github.com/google/oauth2client
 
 Package: python-oauth2client
 Architecture: all
-Pre-Depends: dpkg (>= 1.15.6~),
 Depends: python-uritemplate,
          ${misc:Depends},
          ${python:Depends},
 Recommends: ${python:Recommends},
-Description: OAuth 2.0 client library - Python 2.x
+Description: OAuth 2.0 client library - Python 2.7
  The oauth2client is a client library for OAuth 2.0.
  .
  OAuth is an open standard for authorization. OAuth provides a method for
@@ -36,11 +35,10 @@ Description: OAuth 2.0 client library - Python 2.x
  OpenID. OAuth is also distinct from OATH, which is a reference architecture
  for authentication (i.e. not a standard).
  .
- This package provides the Python 2.x module.
+ This package provides the Python 2.7 module.
 
 Package: python3-oauth2client
 Architecture: all
-Pre-Depends: dpkg (>= 1.15.6~),
 Depends: python3-uritemplate,
          ${misc:Depends},
          ${python3:Depends},
