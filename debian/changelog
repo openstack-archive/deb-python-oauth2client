@@ -9,6 +9,7 @@ python-oauth2client (2.0.1-1) experimental; urgency=medium
   * Updated (build-)depends.
   * Running unit tests with nose (and added needed build-depends-indep).
   * Standards-Version: 3.9.7 (no change).
+  * Fixed debian/copyright ordering.
 
  -- Thomas Goirand <zigo@debian.org>  Tue, 22 Mar 2016 10:01:15 +0100
 

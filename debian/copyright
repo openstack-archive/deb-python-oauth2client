@@ -1,13 +1,13 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: oauth2client
-Source: http://code.google.com/p/google-api-python-client/
-
-Files: debian/*
-Copyright: (c) 2013, Thomas Goirand <zigo@debian.org>
-License: Apache-2
+Source: https://github.com/google/oauth2client
 
 Files: *
 Copyright: (c) 2013, Joe Gregorio
+License: Apache-2
+
+Files: debian/*
+Copyright: (c) 2013-2016, Thomas Goirand <zigo@debian.org>
 License: Apache-2
 
 License: Apache-2
