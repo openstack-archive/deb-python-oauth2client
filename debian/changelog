@@ -5,6 +5,7 @@ python-oauth2client (2.0.1-1) experimental; urgency=medium
   * Move package to PKG OpenStack:
     - Updated VCS URLs.
     - Update maintainer field.
+    - Using git tag workflow and fixed debian/gbp.conf accordingly.
   * Updated (build-)depends.
   * Running unit tests with nose (and added needed build-depends-indep).
 
