@@ -1,3 +1,9 @@
+python-oauth2client (2.0.1-2) unstable; urgency=medium
+
+  * Uploading to unstable.
+
+ -- Thomas Goirand <zigo@debian.org>  Tue, 05 Apr 2016 11:40:02 +0000
+
 python-oauth2client (2.0.1-1) experimental; urgency=medium
 
   * New upstream release.
