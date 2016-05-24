@@ -50,6 +50,7 @@ Homepage: https://github.com/google/oauth2client
 Package: python-oauth2client
 Architecture: all
 Depends: python-httplib2 (>= 0.9),
+         python-openssl (>= 0.14),
          python-pyasn1,
          python-pyasn1-modules (>= 0.0.5),
          python-rsa (>= 3.1.4),
@@ -77,6 +78,7 @@ Description: OAuth 2.0 client library - Python 2.7
 Package: python3-oauth2client
 Architecture: all
 Depends: python3-httplib2 (>= 0.9),
+         python3-openssl (>= 0.14),
          python3-pyasn1,
          python3-pyasn1-modules (>= 0.0.5),
          python3-rsa (>= 3.1.4),
