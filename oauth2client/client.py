@@ -117,12 +117,6 @@ _GCE_HEADERS = {_METADATA_FLAVOR_HEADER: _DESIRED_METADATA_FLAVOR}
 # easier testing (by replacing with a stub).
 _UTCNOW = datetime.datetime.utcnow
 
-# NOTE: These names were previously defined in this module but have been
-#       moved into `oauth2client.transport`,
-clean_headers = transport.clean_headers
-MemoryCache = transport.MemoryCache
-REFRESH_STATUS_CODES = transport.REFRESH_STATUS_CODES
-
 
 class SETTINGS(object):
     """Settings namespace for globally defined values."""
@@ -528,7 +522,7 @@ class OAuth2Credentials(Credentials):
         that adds in the Authorization header and then calls the original
         version of 'request()'.
         """
-        transport.wrap_http_for_auth(self, http)
+        transport.inject_credentials(self, http)
         return http
 
     def refresh(self, http):

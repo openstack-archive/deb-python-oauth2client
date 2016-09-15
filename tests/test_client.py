@@ -875,7 +875,7 @@ class BasicCredentialsTests(unittest.TestCase):
             self.old_positional_enforcement)
 
     def test_token_refresh_success(self):
-        for status_code in client.REFRESH_STATUS_CODES:
+        for status_code in transport.REFRESH_STATUS_CODES:
             token_response = {'access_token': '1/3w', 'expires_in': 3600}
             json_resp = json.dumps(token_response).encode('utf-8')
             http = http_mock.HttpMockSequence([
@@ -906,7 +906,7 @@ class BasicCredentialsTests(unittest.TestCase):
         transport.request(http, 'http://example.com')
 
     def test_token_refresh_failure(self):
-        for status_code in client.REFRESH_STATUS_CODES:
+        for status_code in transport.REFRESH_STATUS_CODES:
             http = http_mock.HttpMockSequence([
                 ({'status': status_code}, b''),
                 ({'status': http_client.BAD_REQUEST},
@@ -1444,7 +1444,7 @@ class BasicCredentialsTests(unittest.TestCase):
             self.credentials.retrieve_scopes(http)
 
     def test_refresh_updates_id_token(self):
-        for status_code in client.REFRESH_STATUS_CODES:
+        for status_code in transport.REFRESH_STATUS_CODES:
             body = {'foo': 'bar'}
             body_json = json.dumps(body).encode('ascii')
             payload = base64.urlsafe_b64encode(body_json).strip(b'=')
@@ -1475,7 +1475,7 @@ class AccessTokenCredentialsTests(unittest.TestCase):
             revoke_uri=oauth2client.GOOGLE_REVOKE_URI)
 
     def test_token_refresh_success(self):
-        for status_code in client.REFRESH_STATUS_CODES:
+        for status_code in transport.REFRESH_STATUS_CODES:
             http = http_mock.HttpMock(
                 headers={'status': status_code}, data=b'')
             http = self.credentials.authorize(http)

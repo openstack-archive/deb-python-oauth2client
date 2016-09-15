@@ -137,8 +137,10 @@ class CryptTests(unittest.TestCase):
         jwt = self._create_signed_jwt()
 
         http = http_mock.HttpMock(data=datafile('certs.json'))
+        patch = mock.patch(
+            'oauth2client.transport.get_cached_http', return_value=http)
 
-        with mock.patch('oauth2client.transport._CACHED_HTTP', new=http):
+        with patch:
             contents = client.verify_id_token(
                 jwt, 'some_audience_address@testing.gserviceaccount.com')
 

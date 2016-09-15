@@ -12,21 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Transport implementation using httplib2"""
+
+from __future__ import absolute_import
+
 import logging
 
 import httplib2
-import six
-from six.moves import http_client
 
-from oauth2client import _helpers
+from oauth2client.transport import _helpers
 
 
 _LOGGER = logging.getLogger(__name__)
 # Properties present in file-like streams / buffers.
 _STREAM_PROPERTIES = ('read', 'seek', 'tell')
-
-# Google Data client libraries may need to set this to [401, 403].
-REFRESH_STATUS_CODES = (http_client.UNAUTHORIZED,)
 
 
 class MemoryCache(object):
@@ -73,68 +72,7 @@ def get_http_object(*args, **kwargs):
     return httplib2.Http(*args, **kwargs)
 
 
-def _initialize_headers(headers):
-    """Creates a copy of the headers.
-
-    Args:
-        headers: dict, request headers to copy.
-
-    Returns:
-        dict, the copied headers or a new dictionary if the headers
-        were None.
-    """
-    return {} if headers is None else dict(headers)
-
-
-def _apply_user_agent(headers, user_agent):
-    """Adds a user-agent to the headers.
-
-    Args:
-        headers: dict, request headers to add / modify user
-                 agent within.
-        user_agent: str, the user agent to add.
-
-    Returns:
-        dict, the original headers passed in, but modified if the
-        user agent is not None.
-    """
-    if user_agent is not None:
-        if 'user-agent' in headers:
-            headers['user-agent'] = (user_agent + ' ' + headers['user-agent'])
-        else:
-            headers['user-agent'] = user_agent
-
-    return headers
-
-
-def clean_headers(headers):
-    """Forces header keys and values to be strings, i.e not unicode.
-
-    The httplib module just concats the header keys and values in a way that
-    may make the message header a unicode string, which, if it then tries to
-    contatenate to a binary request body may result in a unicode decode error.
-
-    Args:
-        headers: dict, A dictionary of headers.
-
-    Returns:
-        The same dictionary but with all the keys converted to strings.
-    """
-    clean = {}
-    try:
-        for k, v in six.iteritems(headers):
-            if not isinstance(k, six.binary_type):
-                k = str(k)
-            if not isinstance(v, six.binary_type):
-                v = str(v)
-            clean[_helpers._to_bytes(k)] = _helpers._to_bytes(v)
-    except UnicodeEncodeError:
-        from oauth2client.client import NonAsciiHeaderError
-        raise NonAsciiHeaderError(k, ': ', v)
-    return clean
-
-
-def wrap_http_for_auth(credentials, http):
+def inject_credentials(credentials, http, refresh_status_codes):
     """Prepares an HTTP object's request method for auth.
 
     Wraps HTTP requests with logic to catch auth failures (typically
@@ -160,9 +98,9 @@ def wrap_http_for_auth(credentials, http):
 
         # Clone and modify the request headers to add the appropriate
         # Authorization header.
-        headers = _initialize_headers(headers)
+        headers = _helpers.initialize_headers(headers)
         credentials.apply(headers)
-        _apply_user_agent(headers, credentials.user_agent)
+        _helpers.apply_user_agent(headers, credentials.user_agent)
 
         body_stream_position = None
         # Check if the body is a file-like stream.
@@ -171,14 +109,14 @@ def wrap_http_for_auth(credentials, http):
             body_stream_position = body.tell()
 
         resp, content = request(orig_request_method, uri, method, body,
-                                clean_headers(headers),
+                                _helpers.clean_headers(headers),
                                 redirections, connection_type)
 
         # A stored token may expire between the time it is retrieved and
         # the time the request is made, so we may need to try twice.
         max_refresh_attempts = 2
         for refresh_attempt in range(max_refresh_attempts):
-            if resp.status not in REFRESH_STATUS_CODES:
+            if resp.status not in refresh_status_codes:
                 break
             _LOGGER.info('Refreshing due to a %s (attempt %s/%s)',
                          resp.status, refresh_attempt + 1,
@@ -189,7 +127,7 @@ def wrap_http_for_auth(credentials, http):
                 body.seek(body_stream_position)
 
             resp, content = request(orig_request_method, uri, method, body,
-                                    clean_headers(headers),
+                                    _helpers.clean_headers(headers),
                                     redirections, connection_type)
 
         return resp, content
@@ -201,7 +139,8 @@ def wrap_http_for_auth(credentials, http):
     http.request.credentials = credentials
 
 
-def wrap_http_for_jwt_access(credentials, http):
+def inject_assertion_credentials(
+        credentials, http, refresh_status_codes):
     """Prepares an HTTP object's request method for JWT access.
 
     Wraps HTTP requests with logic to catch auth failures (typically
@@ -215,8 +154,9 @@ def wrap_http_for_jwt_access(credentials, http):
               auth requests.
     """
     orig_request_method = http.request
-    wrap_http_for_auth(credentials, http)
-    # The new value of ``http.request`` set by ``wrap_http_for_auth``.
+    inject_credentials(
+        credentials, http, refresh_status_codes=refresh_status_codes)
+    # The new value of ``http.request`` set by ``inject_credentials``.
     authenticated_request_method = http.request
 
     # The closure that will replace 'httplib2.Http.request'.
@@ -234,14 +174,14 @@ def wrap_http_for_jwt_access(credentials, http):
         else:
             # If we don't have an 'aud' (audience) claim,
             # create a 1-time token with the uri root as the audience
-            headers = _initialize_headers(headers)
-            _apply_user_agent(headers, credentials.user_agent)
+            headers = _helpers.initialize_headers(headers)
+            _helpers.apply_user_agent(headers, credentials.user_agent)
             uri_root = uri.split('?', 1)[0]
             token, unused_expiry = credentials._create_token({'aud': uri_root})
 
             headers['Authorization'] = 'Bearer ' + token
             return request(orig_request_method, uri, method, body,
-                           clean_headers(headers),
+                           _helpers.clean_headers(headers),
                            redirections, connection_type)
 
     # Replace the request method with our own closure.

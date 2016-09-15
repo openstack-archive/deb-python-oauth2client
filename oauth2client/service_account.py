@@ -596,7 +596,7 @@ class _JWTAccessCredentials(ServiceAccountCredentials):
             h = httplib2.Http()
             h = credentials.authorize(h)
         """
-        transport.wrap_http_for_jwt_access(self, http)
+        transport.inject_assertion_credentials(self, http)
         return http
 
     def get_access_token(self, http=None, additional_claims=None):

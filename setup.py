@@ -53,7 +53,7 @@ setup(
     author='Google Inc.',
     url='http://github.com/google/oauth2client/',
     install_requires=install_requires,
-    packages=find_packages(),
+    packages=find_packages(exclude=('tests',)),
     license='Apache 2.0',
     keywords='google oauth 2.0 http client',
     classifiers=[
