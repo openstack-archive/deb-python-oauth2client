@@ -28,35 +28,6 @@ _LOGGER = logging.getLogger(__name__)
 _STREAM_PROPERTIES = ('read', 'seek', 'tell')
 
 
-class MemoryCache(object):
-    """httplib2 Cache implementation which only caches locally."""
-
-    def __init__(self):
-        self.cache = {}
-
-    def get(self, key):
-        return self.cache.get(key)
-
-    def set(self, key, value):
-        self.cache[key] = value
-
-    def delete(self, key):
-        self.cache.pop(key, None)
-
-
-def get_cached_http():
-    """Return an HTTP object which caches results returned.
-
-    This is intended to be used in methods like
-    oauth2client.client.verify_id_token(), which calls to the same URI
-    to retrieve certs.
-
-    Returns:
-        httplib2.Http, an HTTP object with a MemoryCache
-    """
-    return _CACHED_HTTP
-
-
 def get_http_object(*args, **kwargs):
     """Return a new HTTP object.
 
@@ -220,6 +191,3 @@ def request(http, uri, method='GET', body=None, headers=None,
     return http_callable(uri, method=method, body=body, headers=headers,
                          redirections=redirections,
                          connection_type=connection_type)
-
-
-_CACHED_HTTP = httplib2.Http(MemoryCache())

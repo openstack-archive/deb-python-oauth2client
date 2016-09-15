@@ -36,12 +36,6 @@ def get_default_transport():
     return _SETTINGS.default_transport
 
 
-def get_cached_http():
-    """Returns an http object that caches responses."""
-    # TODO: Remove
-    return get_default_transport().get_cached_http()
-
-
 def get_http_object(*args, **kwargs):
     """Returns an instance of default transport's http object."""
     return get_default_transport().get_http_object(*args, **kwargs)

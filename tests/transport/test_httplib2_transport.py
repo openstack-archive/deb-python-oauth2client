@@ -22,36 +22,6 @@ import oauth2client.transport.httplib2 as httplib2_transport
 from tests import http_mock
 
 
-class TestMemoryCache(unittest.TestCase):
-
-    def test_get_set_delete(self):
-        cache = httplib2_transport.MemoryCache()
-        self.assertIsNone(cache.get('foo'))
-        self.assertIsNone(cache.delete('foo'))
-        cache.set('foo', 'bar')
-        self.assertEqual('bar', cache.get('foo'))
-        cache.delete('foo')
-        self.assertIsNone(cache.get('foo'))
-
-
-class Test_get_cached_http(unittest.TestCase):
-
-    def test_global(self):
-        cached_http = httplib2_transport.get_cached_http()
-        self.assertIsInstance(cached_http, httplib2.Http)
-        self.assertIsInstance(
-            cached_http.cache, httplib2_transport.MemoryCache)
-
-    def test_value(self):
-        cache = object()
-        patch = mock.patch(
-            'oauth2client.transport.httplib2.get_cached_http',
-            return_value=cache)
-        with patch:
-            result = httplib2_transport.get_cached_http()
-        self.assertIs(result, cache)
-
-
 class Test_get_http_object(unittest.TestCase):
 
     @mock.patch.object(httplib2, 'Http', return_value=object())

@@ -25,13 +25,3 @@ class Test_default(unittest.TestCase):
         transport.set_default_transport(mock_transport)
         self.assertEqual(
             transport.get_default_transport(), mock_transport)
-
-
-class Test_get_cached_http(unittest.TestCase):
-    def test_get_cached_http(self):
-        mock_http = mock.Mock()
-        mock_transport = mock.Mock()
-        mock_transport.get_cached_http.return_value = mock_http
-        transport.set_default_transport(mock_transport)
-        self.assertEqual(
-            transport.get_cached_http(), mock_http)

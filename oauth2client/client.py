@@ -1509,6 +1509,22 @@ def _require_crypto_or_die():
         raise CryptoUnavailableError('No crypto library available')
 
 
+class _CERTIFICATE_CACHE(object):
+    certificates = {}
+
+
+def _get_certificates(http, cert_uri):
+    if cert_uri not in _CERTIFICATE_CACHE.certificates:
+        resp, content = transport.request(http, cert_uri)
+        if resp.status == http_client.OK:
+            certs = json.loads(_helpers._from_bytes(content))
+            _CERTIFICATE_CACHE.certificates[cert_uri] = certs
+        else:
+            raise http_client.HTTPException(
+                'Unable to obtain certificate: {0}'.format(resp.status))
+    return _CERTIFICATE_CACHE.certificates[cert_uri]
+
+
 @_helpers.positional(2)
 def verify_id_token(id_token, audience, http=None,
                     cert_uri=ID_TOKEN_VERIFICATION_CERTS):
@@ -1533,15 +1549,16 @@ def verify_id_token(id_token, audience, http=None,
         CryptoUnavailableError: if no crypto library is available.
     """
     _require_crypto_or_die()
-    if http is None:
-        http = transport.get_cached_http()
 
-    resp, content = transport.request(http, cert_uri)
-    if resp.status == http_client.OK:
-        certs = json.loads(_helpers._from_bytes(content))
-        return crypt.verify_signed_jwt_with_certs(id_token, certs, audience)
-    else:
-        raise VerifyJwtTokenError('Status code: {0}'.format(resp.status))
+    if http is None:
+        http = transport.get_http_object()
+
+    try:
+        certs = _get_certificates(http, cert_uri)
+    except http_client.HTTPException as e:
+        raise VerifyJwtTokenError(e)
+
+    return crypt.verify_signed_jwt_with_certs(id_token, certs, audience)
 
 
 def _extract_id_token(id_token):

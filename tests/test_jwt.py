@@ -52,6 +52,7 @@ class CryptTests(unittest.TestCase):
         self.format_ = 'p12'
         self.signer = crypt.OpenSSLSigner
         self.verifier = crypt.OpenSSLVerifier
+        client._CERTIFICATE_CACHE.certificates = {}
 
     def test_sign_and_verify(self):
         self._check_sign_and_verify('privatekey.' + self.format_)
@@ -120,6 +121,22 @@ class CryptTests(unittest.TestCase):
         self.assertIsNone(http.body)
         self.assertIsNone(http.headers)
 
+    def test_verify_id_token_with_cached_certs(self):
+        http = http_mock.HttpMock(data=datafile('certs.json'))
+
+        # Prime the cache
+        client._get_certificates(http, client.ID_TOKEN_VERIFICATION_CERTS)
+        self._verify_http_mock(http)
+
+        jwt = self._create_signed_jwt()
+        noop_http = http_mock.HttpMock()
+
+        # verify_id_token should use the cached certificates
+        client.verify_id_token(
+            jwt, 'some_audience_address@testing.gserviceaccount.com',
+            http=noop_http)
+        self.assertEqual(noop_http.requests, 0)
+
     def test_verify_id_token_with_certs_uri(self):
         jwt = self._create_signed_jwt()
 
@@ -138,7 +155,7 @@ class CryptTests(unittest.TestCase):
 
         http = http_mock.HttpMock(data=datafile('certs.json'))
         patch = mock.patch(
-            'oauth2client.transport.get_cached_http', return_value=http)
+            'oauth2client.transport.get_http_object', return_value=http)
 
         with patch:
             contents = client.verify_id_token(
@@ -234,6 +251,7 @@ class PEMCryptTestsPyCrypto(CryptTests):
         self.format_ = 'pem'
         self.signer = crypt.PyCryptoSigner
         self.verifier = crypt.PyCryptoVerifier
+        client._CERTIFICATE_CACHE.certificates = {}
 
 
 class PEMCryptTestsOpenSSL(CryptTests):
@@ -242,6 +260,7 @@ class PEMCryptTestsOpenSSL(CryptTests):
         self.format_ = 'pem'
         self.signer = crypt.OpenSSLSigner
         self.verifier = crypt.OpenSSLVerifier
+        client._CERTIFICATE_CACHE.certificates = {}
 
 
 class SignedJwtAssertionCredentialsTests(unittest.TestCase):
