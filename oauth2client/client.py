@@ -1555,8 +1555,8 @@ def verify_id_token(id_token, audience, http=None,
 
     try:
         certs = _get_certificates(http, cert_uri)
-    except http_client.HTTPException as e:
-        raise VerifyJwtTokenError(e)
+    except http_client.HTTPException as exc:
+        raise VerifyJwtTokenError(exc)
 
     return crypt.verify_signed_jwt_with_certs(id_token, certs, audience)
 
