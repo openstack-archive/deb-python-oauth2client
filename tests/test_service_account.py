@@ -489,12 +489,12 @@ class JWTAccessCredentialsTests(unittest.TestCase):
             ({'status': http_client.OK}, b''),
         ])
 
-        self.jwt.authorize(http)
-        transport.request(http, self.url)
+        authed_http = self.jwt.authorize(http)
+        transport.request(authed_http, self.url)
 
         # Ensure we use the cached token
         utcnow.return_value = T2_DATE
-        transport.request(http, self.url)
+        transport.request(authed_http, self.url)
 
         # Verify mocks.
         certs = {'key': datafile('public_cert.pem')}
@@ -529,8 +529,8 @@ class JWTAccessCredentialsTests(unittest.TestCase):
             ({'status': http_client.OK}, b''),
         ])
 
-        jwt.authorize(http)
-        transport.request(http, self.url)
+        authed_http = jwt.authorize(http)
+        transport.request(authed_http, self.url)
 
         # Ensure we do not cache the token
         self.assertIsNone(jwt.access_token)
@@ -562,13 +562,13 @@ class JWTAccessCredentialsTests(unittest.TestCase):
             ({'status': http_client.OK}, b''),
             ({'status': http_client.OK}, b''),
         ])
-        self.jwt.authorize(http)
-        transport.request(http, self.url)
+        authed_http = self.jwt.authorize(http)
+        transport.request(authed_http, self.url)
         token_1 = self.jwt.access_token
 
         # Expire the token
         utcnow.return_value = T3_DATE
-        transport.request(http, self.url)
+        transport.request(authed_http, self.url)
         token_2 = self.jwt.access_token
         self.assertEquals(self.jwt.token_expiry, T3_EXPIRY_DATE)
         self.assertNotEqual(token_1, token_2)
@@ -612,12 +612,12 @@ class JWTAccessCredentialsTests(unittest.TestCase):
             ({'status': http_client.UNAUTHORIZED}, b''),
             ({'status': http_client.OK}, b''),
         ])
-        http = self.jwt.authorize(http)
-        http.request(self.url)
+        authed_http = self.jwt.authorize(http)
+        authed_http.request(self.url)
         token_1 = self.jwt.access_token
 
         utcnow.return_value = T2_DATE
-        response, _ = http.request(self.url)
+        response, _ = authed_http.request(self.url)
         self.assertEquals(response.status, http_client.OK)
         token_2 = self.jwt.access_token
         # Check the 401 forced a new token

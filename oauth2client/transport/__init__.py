@@ -41,10 +41,26 @@ def get_http_object(*args, **kwargs):
     return get_default_transport().get_http_object(*args, **kwargs)
 
 
-def inject_credentials(
+def make_authorized_http(
         http_object, credentials, refresh_status_code=REFRESH_STATUS_CODES):
-    """Injects credentials into the given http object."""
-    return get_default_transport().inject_credentials(
+    """Creates an http object that provides credentials to requests.
+
+    The behavior is transport-specific, but all transports will return a new
+    http object that provides credentials to requests and refreshed credentials
+    when a response in REFRESH_STATUS_CODES is received.
+
+    Args:
+        credentials: An instance of
+            :class:`~oauth2client.client.OAuth2Credentials`.
+        http: The http object to wrap.
+        refresh_status_codes: A sequence of status codes that indicate that
+            credentials should be refreshed and the request retried. Defaults
+            to REFRESH_STATUS_CODES.
+
+    Returns:
+        A new http object that provides credentials to requests.
+    """
+    return get_default_transport().make_authorized_http(
         http_object, credentials, refresh_status_codes=refresh_status_code)
 
 

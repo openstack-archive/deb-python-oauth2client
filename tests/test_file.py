@@ -190,8 +190,8 @@ class OAuth2ClientFileTests(unittest.TestCase):
              b'Valid response to original request')
         ])
 
-        credentials.authorize(http)
-        transport.request(http, 'https://example.com')
+        authed_http = credentials.authorize(http)
+        transport.request(authed_http, 'https://example.com')
         self.assertEqual(credentials.access_token, access_token)
 
     def test_token_refresh_good_store(self):
@@ -236,8 +236,9 @@ class OAuth2ClientFileTests(unittest.TestCase):
 
         body = six.StringIO('streaming body')
 
-        credentials.authorize(http)
-        _, content = transport.request(http, 'https://example.com', body=body)
+        authed_http = credentials.authorize(http)
+        _, content = transport.request(
+            authed_http, 'https://example.com', body=body)
         self.assertEqual(content, 'streaming body')
         self.assertEqual(credentials.access_token, valid_access_token)
 

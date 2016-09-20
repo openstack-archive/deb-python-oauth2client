@@ -44,32 +44,33 @@ def get_http_object(*args, **kwargs):
     return httplib2.Http(*args, **kwargs)
 
 
-def inject_credentials(credentials, http, refresh_status_codes):
-    """Prepares an HTTP object's request method for auth.
+class _AuthorizedHttp(object):
+    """An httplib2.Http-like object that provides credentials to requests.
 
-    Wraps HTTP requests with logic to catch auth failures (typically
-    identified via a 401 status code). In the event of failure, tries
-    to refresh the token used and then retry the original request.
-
-    Args:
-        credentials: Credentials, the credentials used to identify
-                     the authenticated user.
-        http: httplib2.Http, an http object to be used to make
-              auth requests.
+    A new class is used because you can't create a new OAuth subclass of
+    httplib2.Authentication because it never gets passed the absolute URI,
+    which is needed for signing. So instead we have to overload 'request'
+    and add in the Authorization header and then calls the original
+    version of :func:`request`.
     """
-    orig_request_method = http.request
+    def __init__(self, http, credentials, refresh_status_codes):
+        self.http = http
+        self.credentials = credentials
+        self.refresh_status_codes = refresh_status_codes
 
-    # The closure that will replace 'httplib2.Http.request'.
-    def new_request(uri, method='GET', body=None, headers=None,
-                    redirections=httplib2.DEFAULT_MAX_REDIRECTS,
-                    connection_type=None, _credential_refresh_attempt=0):
+    def request(self, uri, method='GET', body=None, headers=None,
+                redirections=httplib2.DEFAULT_MAX_REDIRECTS,
+                **kwargs):
+        """Make an authenticated request, refreshing credentials as needed."""
+        _credential_refresh_attempt = kwargs.pop(
+            '_credential_refresh_attempt', 0)
 
         # Clone and modify the request headers to add the appropriate
         # Authorization header.
         headers = _helpers.initialize_headers(headers)
-        _helpers.apply_user_agent(headers, credentials.user_agent)
+        _helpers.apply_user_agent(headers, self.credentials.user_agent)
 
-        credentials._before_request(orig_request_method, uri, headers)
+        self.credentials._before_request(self.http, uri, headers)
         headers = _helpers.clean_headers(headers)
 
         body_stream_position = None
@@ -78,24 +79,23 @@ def inject_credentials(credentials, http, refresh_status_codes):
                _STREAM_PROPERTIES):
             body_stream_position = body.tell()
 
-        resp, content = request(
-            orig_request_method, uri, method, body,
-            headers, redirections, connection_type)
+        response, content = self.http.request(
+            uri, method, body, headers, redirections, **kwargs)
 
         # If the response indicated that the credentials needed to be
         # refreshed, then refresh the credentials and re-attempt the
         # request.
         # A stored token may expire between the time it is retrieved and
         # the time the request is made, so we may need to try twice.
-        if (resp.status in refresh_status_codes
+        if (response.status in self.refresh_status_codes
                 and _credential_refresh_attempt < _MAX_REFRESH_ATTEMPTS):
 
             _LOGGER.info(
                 'Refreshing due to a %s (attempt %s/%s)',
-                resp.status, _credential_refresh_attempt + 1,
+                response.status, _credential_refresh_attempt + 1,
                 _MAX_REFRESH_ATTEMPTS)
 
-            credentials.refresh(orig_request_method)
+            self.credentials.refresh(self.http)
 
             # Remove the existing Authorization header, as the credentials
             # may set the header as u'Authorization' but clean_headers set it
@@ -105,23 +105,39 @@ def inject_credentials(credentials, http, refresh_status_codes):
             if body_stream_position is not None:
                 body.seek(body_stream_position)
 
-            return new_request(
+            # To iterate is human, to recurse, divine.
+            return self.request(
                 uri, method, body=body, headers=None,
-                redirections=redirections, connection_type=connection_type,
-                _credential_refresh_attempt=_credential_refresh_attempt+1)
+                redirections=redirections,
+                _credential_refresh_attempt=_credential_refresh_attempt + 1,
+                **kwargs)
 
-        return resp, content
+        return response, content
 
-    # Replace the request method with our own closure.
-    http.request = new_request
 
-    # Set credentials as a property of the request method.
-    http.request.credentials = credentials
+def make_authorized_http(credentials, http, refresh_status_codes):
+    """Creates an http object that provides credentials to requests.
+
+    The behavior is transport-specific, but all transports will return a new
+    http object that provides credentials to requests and refreshed credentials
+    when a response in REFRESH_STATUS_CODES is received.
+
+    Args:
+        credentials: An instance of
+            :class:`~oauth2client.client.OAuth2Credentials`.
+        http: The http object to wrap.
+        refresh_status_codes: A sequence of status codes that indicate that
+            credentials should be refreshed and the request retried.
+
+    Returns:
+        A new http object that provides credentials to requests.
+    """
+    return _AuthorizedHttp(http, credentials, refresh_status_codes)
 
 
 def request(http, uri, method='GET', body=None, headers=None,
             redirections=httplib2.DEFAULT_MAX_REDIRECTS,
-            connection_type=None):
+            **kwargs):
     """Make an HTTP request with an HTTP object and arguments.
 
     Args:
@@ -143,8 +159,6 @@ def request(http, uri, method='GET', body=None, headers=None,
         tuple, a pair of a httplib2.Response with the status code and other
         headers and the bytes of the content returned.
     """
-    # NOTE: Allowing http or http.request is temporary (See Issue 601).
-    http_callable = getattr(http, 'request', http)
-    return http_callable(uri, method=method, body=body, headers=headers,
-                         redirections=redirections,
-                         connection_type=connection_type)
+    return http.request(
+        uri, method=method, body=body, headers=headers,
+        redirections=redirections, **kwargs)

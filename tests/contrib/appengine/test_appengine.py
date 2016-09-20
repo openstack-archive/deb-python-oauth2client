@@ -907,7 +907,7 @@ class DecoratorTests(unittest.TestCase):
         self.test_required()
         http = self.decorator.http()
         self.assertEquals('foo_access_token',
-                          http.request.credentials.access_token)
+                          http.credentials.access_token)
 
         # revoke_uri is not required
         self.assertEqual(self.decorator._revoke_uri,

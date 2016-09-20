@@ -983,11 +983,12 @@ class BasicCredentialsTests(unittest.TestCase):
         # First, test that we correctly encode basic objects, making sure
         # to include a bytes object. Note that oauth2client will normalize
         # everything to bytes, no matter what python version we're in.
-        http = credentials.authorize(http_mock.HttpMock())
+        http = http_mock.HttpMock()
+        authed_http = credentials.authorize(http)
         headers = {u'foo': 3, b'bar': True, 'baz': b'abc'}
         cleaned_headers = {b'foo': b'3', b'bar': b'True', b'baz': b'abc'}
         transport.request(
-            http, u'http://example.com', method=u'GET', headers=headers)
+            authed_http, u'http://example.com', method=u'GET', headers=headers)
         for k, v in cleaned_headers.items():
             self.assertTrue(k in http.headers)
             self.assertEqual(v, http.headers[k])
@@ -996,7 +997,7 @@ class BasicCredentialsTests(unittest.TestCase):
         unicode_str = six.unichr(40960) + 'abcd'
         with self.assertRaises(client.NonAsciiHeaderError):
             transport.request(
-                http, u'http://example.com', method=u'GET',
+                authed_http, u'http://example.com', method=u'GET',
                 headers={u'foo': unicode_str})
 
     def test_no_unicode_in_request_params(self):
@@ -1013,9 +1014,9 @@ class BasicCredentialsTests(unittest.TestCase):
             token_expiry, token_uri, user_agent, revoke_uri=revoke_uri)
 
         http = http_mock.HttpMock()
-        http = credentials.authorize(http)
+        authed_http = credentials.authorize(http)
         transport.request(
-            http, u'http://example.com', method=u'GET',
+            authed_http, u'http://example.com', method=u'GET',
             headers={u'foo': u'bar'})
         for k, v in six.iteritems(http.headers):
             self.assertIsInstance(k, six.binary_type)
@@ -1025,7 +1026,7 @@ class BasicCredentialsTests(unittest.TestCase):
         # to ASCII.
         with self.assertRaises(client.NonAsciiHeaderError):
             transport.request(
-                http, u'http://example.com', method=u'GET',
+                authed_http, u'http://example.com', method=u'GET',
                 headers={u'foo': u'\N{COMET}'})
 
         self.credentials.token_response = 'foobar'

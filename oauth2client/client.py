@@ -194,15 +194,16 @@ class Credentials(object):
     NON_SERIALIZED_MEMBERS = frozenset(['store'])
 
     def authorize(self, http):
-        """Take an httplib2.Http instance (or equivalent) and authorizes it.
+        """Creates an HTTP object that provides credentials to requests.
 
-        Authorizes it for the set of credentials, usually by replacing
-        http.request() with a method that adds in the appropriate headers and
-        then delegates to the original Http.request() method.
+        Typically will use :mod:`transport` to wrap the HTTP object to provide
+        credentials to requests and handle refreshing credentials as needed.
 
         Args:
-            http: httplib2.Http, an http object to be used to make the refresh
-                  request.
+            http: The HTTP object to wrap.
+
+        Returns:
+            A new HTTP object that provides credentials to requests.
         """
         raise NotImplementedError
 
@@ -210,7 +211,7 @@ class Credentials(object):
         """Forces a refresh of the access_token.
 
         Args:
-            http: httplib2.Http, an http object to be used to make the refresh
+            http: httplib2.Http, an HTTP object to be used to make the refresh
                   request.
         """
         raise NotImplementedError
@@ -219,7 +220,7 @@ class Credentials(object):
         """Revokes a refresh_token and makes the credentials void.
 
         Args:
-            http: httplib2.Http, an http object to be used to make the revoke
+            http: httplib2.Http, an HTTP object to be used to make the revoke
                   request.
         """
         raise NotImplementedError
@@ -496,34 +497,23 @@ class OAuth2Credentials(Credentials):
         self.invalid = False
 
     def authorize(self, http):
-        """Authorize an httplib2.Http instance with these credentials.
+        """Creates an http object that provides credentials to requests.
 
-        The modified http.request method will add authentication headers to
-        each request and will refresh access_tokens when a 401 is received on a
-        request. In addition the http.request method has a credentials
-        property, http.request.credentials, which is the Credentials object
-        that authorized it.
+        Typically will use :mod:`transport` to wrap the http object to provide
+        credentials to requests and handle refreshing credentials as needed.
 
         Args:
-            http: An instance of ``httplib2.Http`` or something that acts
-                  like it.
+            http: The http object to wrap.
 
         Returns:
-            A modified instance of http that was passed in.
+            A new http object that provides credentials to requests.
 
         Example::
 
-            h = httplib2.Http()
-            h = credentials.authorize(h)
-
-        You can't create a new OAuth subclass of httplib2.Authentication
-        because it never gets passed the absolute URI, which is needed for
-        signing. So instead we have to overload 'request' with a closure
-        that adds in the Authorization header and then calls the original
-        version of 'request()'.
+            http = httplib2.Http()
+            authed_http = credentials.authorize(http)
         """
-        transport.inject_credentials(self, http)
-        return http
+        return transport.make_authorized_http(self, http)
 
     def refresh(self, http):
         """Forces a refresh of the access_token.

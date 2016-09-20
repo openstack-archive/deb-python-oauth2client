@@ -37,17 +37,16 @@ class Test_get_http_object(unittest.TestCase):
         http_klass.assert_called_once_with(1, 2, foo='bar')
 
 
-class Test_inject_credentials(unittest.TestCase):
+class Test_make_authorized_http(unittest.TestCase):
 
     def test_wrap(self):
         credentials = object()
         http = mock.Mock()
-        http.request = orig_req_method = object()
-        result = httplib2_transport.inject_credentials(
+        result = httplib2_transport.make_authorized_http(
             credentials, http, transport.REFRESH_STATUS_CODES)
-        self.assertIsNone(result)
-        self.assertNotEqual(http.request, orig_req_method)
-        self.assertIs(http.request.credentials, credentials)
+        self.assertNotEqual(result, http)
+        self.assertEqual(result.http, http)
+        self.assertIs(result.credentials, credentials)
 
 
 class Test_request(unittest.TestCase):
