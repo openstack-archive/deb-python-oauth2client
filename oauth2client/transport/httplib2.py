@@ -26,6 +26,7 @@ from oauth2client.transport import _helpers
 _LOGGER = logging.getLogger(__name__)
 # Properties present in file-like streams / buffers.
 _STREAM_PROPERTIES = ('read', 'seek', 'tell')
+_MAX_REFRESH_ATTEMPTS = 2
 
 
 def get_http_object(*args, **kwargs):
@@ -61,7 +62,7 @@ def inject_credentials(credentials, http, refresh_status_codes):
     # The closure that will replace 'httplib2.Http.request'.
     def new_request(uri, method='GET', body=None, headers=None,
                     redirections=httplib2.DEFAULT_MAX_REDIRECTS,
-                    connection_type=None):
+                    connection_type=None, _credential_refresh_attempt=0):
 
         # Clone and modify the request headers to add the appropriate
         # Authorization header.
@@ -81,16 +82,18 @@ def inject_credentials(credentials, http, refresh_status_codes):
             orig_request_method, uri, method, body,
             headers, redirections, connection_type)
 
+        # If the response indicated that the credentials needed to be
+        # refreshed, then refresh the credentials and re-attempt the
+        # request.
         # A stored token may expire between the time it is retrieved and
         # the time the request is made, so we may need to try twice.
-        max_refresh_attempts = 2
-        for refresh_attempt in range(max_refresh_attempts):
-            if resp.status not in refresh_status_codes:
-                break
+        if (resp.status in refresh_status_codes
+                and _credential_refresh_attempt < _MAX_REFRESH_ATTEMPTS):
 
             _LOGGER.info(
                 'Refreshing due to a %s (attempt %s/%s)',
-                resp.status, refresh_attempt + 1, max_refresh_attempts)
+                resp.status, _credential_refresh_attempt + 1,
+                _MAX_REFRESH_ATTEMPTS)
 
             credentials.refresh(orig_request_method)
 
@@ -99,15 +102,13 @@ def inject_credentials(credentials, http, refresh_status_codes):
             # as b'Authorization'.
             headers.pop(b'Authorization', None)
 
-            credentials._before_request(orig_request_method, uri, headers)
-            headers = _helpers.clean_headers(headers)
-
             if body_stream_position is not None:
                 body.seek(body_stream_position)
 
-            resp, content = request(
-                orig_request_method, uri, method, body,
-                headers, redirections, connection_type)
+            return new_request(
+                uri, method, body=body, headers=None,
+                redirections=redirections, connection_type=connection_type,
+                _credential_refresh_attempt=_credential_refresh_attempt+1)
 
         return resp, content
 
