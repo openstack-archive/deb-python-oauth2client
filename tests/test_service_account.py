@@ -601,19 +601,23 @@ class JWTAccessCredentialsTests(unittest.TestCase):
 
     @mock.patch('oauth2client.client._UTCNOW')
     def test_authorize_401(self, utcnow):
+        # Test that a 401 triggers a refresh of the access token.
         utcnow.return_value = T1_DATE
 
+        # First request should use the first access token.
+        # Second request returns 401 and should refresh the access token.
+        # Third request should use the second access token.
         http = http_mock.HttpMockSequence([
             ({'status': http_client.OK}, b''),
             ({'status': http_client.UNAUTHORIZED}, b''),
             ({'status': http_client.OK}, b''),
         ])
-        self.jwt.authorize(http)
-        transport.request(http, self.url)
+        http = self.jwt.authorize(http)
+        http.request(self.url)
         token_1 = self.jwt.access_token
 
         utcnow.return_value = T2_DATE
-        response, _ = transport.request(http, self.url)
+        response, _ = http.request(self.url)
         self.assertEquals(response.status, http_client.OK)
         token_2 = self.jwt.access_token
         # Check the 401 forced a new token
@@ -624,8 +628,8 @@ class JWTAccessCredentialsTests(unittest.TestCase):
         self.assertEqual(len(http.requests), 3)
         issued_at_vals = (T1, T1, T2)
         exp_vals = (T1_EXPIRY, T1_EXPIRY, T2_EXPIRY)
-        for info, issued_at, exp_val in zip(http.requests, issued_at_vals,
-                                            exp_vals):
+        for info, issued_at, exp_val in zip(
+                http.requests, issued_at_vals, exp_vals):
             self.assertEqual(info['uri'], self.url)
             self.assertEqual(info['method'], 'GET')
             self.assertIsNone(info['body'])

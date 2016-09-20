@@ -101,6 +101,7 @@ class HttpMockSequence(object):
                 redirections=1,
                 connection_type=None):
         resp, content = self._iterable.pop(0)
+        headers = {} if headers is None else dict(headers)
         self.requests.append({
             'method': method,
             'uri': uri,
@@ -111,7 +112,7 @@ class HttpMockSequence(object):
         body_stream_content = (body.read()
                                if getattr(body, 'read', None) else None)
         if content == 'echo_request_headers':
-            content = headers
+            content = headers.copy()
         elif content == 'echo_request_body':
             content = (body
                        if body_stream_content is None else body_stream_content)

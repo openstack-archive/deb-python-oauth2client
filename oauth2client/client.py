@@ -665,6 +665,23 @@ class OAuth2Credentials(Credentials):
         """
         self.store = store
 
+    def _before_request(self, http, uri, headers):
+        """Called before an authorized HTTP request is made.
+
+        Refreshes the credentials if necessary and applies the Authorization
+        header.
+
+        Args:
+            http: A transport http object.
+            uri: string, The request's URI.
+            header: dict, The request's headers.
+        """
+        if not self.access_token:
+            logger.info(
+                'Attempting refresh to obtain initial access token.')
+            self.refresh(http)
+        return self.apply(headers)
+
     def _expires_in(self):
         """Return the number of seconds until this token expires.
 

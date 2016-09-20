@@ -48,14 +48,6 @@ def inject_credentials(
         http_object, credentials, refresh_status_codes=refresh_status_code)
 
 
-def inject_assertion_credentials(
-        http_object, credentials, refresh_status_code=REFRESH_STATUS_CODES):
-    """Injects assertion-style credentials into the given http object."""
-    # TODO: Consolidate with inject_credentials.
-    return get_default_transport().inject_assertion_credentials(
-        http_object, credentials, refresh_status_codes=refresh_status_code)
-
-
 def request(http_object, uri, method='GET', body=None, headers=None, **kwargs):
     """Makes an HTTP request."""
     return get_default_transport().request(

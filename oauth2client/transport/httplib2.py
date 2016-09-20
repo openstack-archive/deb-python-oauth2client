@@ -62,16 +62,14 @@ def inject_credentials(credentials, http, refresh_status_codes):
     def new_request(uri, method='GET', body=None, headers=None,
                     redirections=httplib2.DEFAULT_MAX_REDIRECTS,
                     connection_type=None):
-        if not credentials.access_token:
-            _LOGGER.info('Attempting refresh to obtain '
-                         'initial access_token')
-            credentials._refresh(orig_request_method)
 
         # Clone and modify the request headers to add the appropriate
         # Authorization header.
         headers = _helpers.initialize_headers(headers)
-        credentials.apply(headers)
         _helpers.apply_user_agent(headers, credentials.user_agent)
+
+        credentials._before_request(orig_request_method, uri, headers)
+        headers = _helpers.clean_headers(headers)
 
         body_stream_position = None
         # Check if the body is a file-like stream.
@@ -79,9 +77,9 @@ def inject_credentials(credentials, http, refresh_status_codes):
                _STREAM_PROPERTIES):
             body_stream_position = body.tell()
 
-        resp, content = request(orig_request_method, uri, method, body,
-                                _helpers.clean_headers(headers),
-                                redirections, connection_type)
+        resp, content = request(
+            orig_request_method, uri, method, body,
+            headers, redirections, connection_type)
 
         # A stored token may expire between the time it is retrieved and
         # the time the request is made, so we may need to try twice.
@@ -89,71 +87,29 @@ def inject_credentials(credentials, http, refresh_status_codes):
         for refresh_attempt in range(max_refresh_attempts):
             if resp.status not in refresh_status_codes:
                 break
-            _LOGGER.info('Refreshing due to a %s (attempt %s/%s)',
-                         resp.status, refresh_attempt + 1,
-                         max_refresh_attempts)
-            credentials._refresh(orig_request_method)
-            credentials.apply(headers)
+
+            _LOGGER.info(
+                'Refreshing due to a %s (attempt %s/%s)',
+                resp.status, refresh_attempt + 1, max_refresh_attempts)
+
+            credentials.refresh(orig_request_method)
+
+            # Remove the existing Authorization header, as the credentials
+            # may set the header as u'Authorization' but clean_headers set it
+            # as b'Authorization'.
+            headers.pop(b'Authorization', None)
+
+            credentials._before_request(orig_request_method, uri, headers)
+            headers = _helpers.clean_headers(headers)
+
             if body_stream_position is not None:
                 body.seek(body_stream_position)
 
-            resp, content = request(orig_request_method, uri, method, body,
-                                    _helpers.clean_headers(headers),
-                                    redirections, connection_type)
+            resp, content = request(
+                orig_request_method, uri, method, body,
+                headers, redirections, connection_type)
 
         return resp, content
-
-    # Replace the request method with our own closure.
-    http.request = new_request
-
-    # Set credentials as a property of the request method.
-    http.request.credentials = credentials
-
-
-def inject_assertion_credentials(
-        credentials, http, refresh_status_codes):
-    """Prepares an HTTP object's request method for JWT access.
-
-    Wraps HTTP requests with logic to catch auth failures (typically
-    identified via a 401 status code). In the event of failure, tries
-    to refresh the token used and then retry the original request.
-
-    Args:
-        credentials: _JWTAccessCredentials, the credentials used to identify
-                     a service account that uses JWT access tokens.
-        http: httplib2.Http, an http object to be used to make
-              auth requests.
-    """
-    orig_request_method = http.request
-    inject_credentials(
-        credentials, http, refresh_status_codes=refresh_status_codes)
-    # The new value of ``http.request`` set by ``inject_credentials``.
-    authenticated_request_method = http.request
-
-    # The closure that will replace 'httplib2.Http.request'.
-    def new_request(uri, method='GET', body=None, headers=None,
-                    redirections=httplib2.DEFAULT_MAX_REDIRECTS,
-                    connection_type=None):
-        if 'aud' in credentials._kwargs:
-            # Preemptively refresh token, this is not done for OAuth2
-            if (credentials.access_token is None or
-                    credentials.access_token_expired):
-                credentials.refresh(None)
-            return request(authenticated_request_method, uri,
-                           method, body, headers, redirections,
-                           connection_type)
-        else:
-            # If we don't have an 'aud' (audience) claim,
-            # create a 1-time token with the uri root as the audience
-            headers = _helpers.initialize_headers(headers)
-            _helpers.apply_user_agent(headers, credentials.user_agent)
-            uri_root = uri.split('?', 1)[0]
-            token, unused_expiry = credentials._create_token({'aud': uri_root})
-
-            headers['Authorization'] = 'Bearer ' + token
-            return request(orig_request_method, uri, method, body,
-                           _helpers.clean_headers(headers),
-                           redirections, connection_type)
 
     # Replace the request method with our own closure.
     http.request = new_request

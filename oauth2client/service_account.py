@@ -20,11 +20,12 @@ import datetime
 import json
 import time
 
+from six.moves import urllib
+
 import oauth2client
 from oauth2client import _helpers
 from oauth2client import client
 from oauth2client import crypt
-from oauth2client import transport
 
 
 _PASSWORD_DEFAULT = 'notasecret'
@@ -581,24 +582,6 @@ class _JWTAccessCredentials(ServiceAccountCredentials):
             revoke_uri=revoke_uri,
             **additional_claims)
 
-    def authorize(self, http):
-        """Authorize an httplib2.Http instance with a JWT assertion.
-
-        Unless specified, the 'aud' of the assertion will be the base
-        uri of the request.
-
-        Args:
-            http: An instance of ``httplib2.Http`` or something that acts
-                  like it.
-        Returns:
-            A modified instance of http that was passed in.
-        Example::
-            h = httplib2.Http()
-            h = credentials.authorize(h)
-        """
-        transport.inject_assertion_credentials(self, http)
-        return http
-
     def get_access_token(self, http=None, additional_claims=None):
         """Create a signed jwt.
 
@@ -613,12 +596,12 @@ class _JWTAccessCredentials(ServiceAccountCredentials):
             if self.access_token is None or self.access_token_expired:
                 self.refresh(None)
             return client.AccessTokenInfo(
-              access_token=self.access_token, expires_in=self._expires_in())
+                access_token=self.access_token, expires_in=self._expires_in())
         else:
             # Create a 1 time token
             token, unused_expiry = self._create_token(additional_claims)
             return client.AccessTokenInfo(
-              access_token=token, expires_in=self._MAX_TOKEN_LIFETIME_SECS)
+                access_token=token, expires_in=self._MAX_TOKEN_LIFETIME_SECS)
 
     def revoke(self, http):
         """Cannot revoke JWTAccessCredentials tokens."""
@@ -683,3 +666,44 @@ class _JWTAccessCredentials(ServiceAccountCredentials):
         jwt = crypt.make_signed_jwt(self._signer, payload,
                                     key_id=self._private_key_id)
         return jwt.decode('ascii'), expiry
+
+    def apply(self, headers, access_token=None):
+        """Add the access token as the Authorization header in headers.
+
+        Args:
+            headers: dict, the headers to add the Authorization header to.
+            access_token: An access token to use instead of the credential's
+                current access token.
+        """
+        if not access_token:
+            access_token = self.access_token
+        headers['Authorization'] = 'Bearer ' + access_token
+
+    def _before_request(self, http, uri, headers):
+        """Called before an authorized HTTP request is made.
+
+        Refreshes the credentials if necessary and applies the Authorization
+        header. In the case where these credentials do not have an audience,
+        it generates a one-time access token using the request URI as the
+        audience.
+
+        Args:
+            http: A transport http object.
+            uri: string, The request's URI.
+            header: dict, The request's headers.
+        """
+        if 'aud' in self._kwargs:
+            # Preemptively refresh token. This is not done for regular
+            # OAuth2 credentials, but is useful here because it avoids
+            # unnecessary requests.
+            if self.access_token is None or self.access_token_expired:
+                self.refresh(None)
+            self.apply(headers)
+        else:
+            # Generate a one-time token using the request URI as the audience.
+            parts = urllib.parse.urlsplit(uri)
+            # Strip query string and fragment
+            uri_root = urllib.parse.urlunsplit(
+                (parts.scheme, parts.netloc, parts.path, None, None))
+            token, unused_expiry = self._create_token({'aud': uri_root})
+            self.apply(headers, access_token=token)

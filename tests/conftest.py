@@ -14,7 +14,12 @@
 
 """Py.test hooks."""
 
+import logging
+
 from oauth2client import _helpers
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 def pytest_addoption(parser):
