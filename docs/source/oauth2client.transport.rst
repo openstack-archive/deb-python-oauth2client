@@ -7,6 +7,7 @@ Submodules
 .. toctree::
 
    oauth2client.transport.httplib2
+   oauth2client.transport.urllib3
 
 Module contents
 ---------------

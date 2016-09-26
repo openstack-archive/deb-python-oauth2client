@@ -20,7 +20,7 @@ import mock
 from oauth2client import transport
 import oauth2client.transport.httplib2 as httplib2_transport
 from tests import http_mock
-from tests.transport import test_transport_compliance
+from tests.transport import transport_compliance
 
 
 class Test_get_http_object(unittest.TestCase):
@@ -74,6 +74,6 @@ class Test_request(unittest.TestCase):
 
 
 class TestHttplib2TransportCompliance(
-        test_transport_compliance.TransportComplianceTests):
+        transport_compliance.TransportComplianceTests):
     transport = httplib2_transport
     exceptions = (httplib2.HttpLib2Error,)

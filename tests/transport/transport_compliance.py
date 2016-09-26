@@ -24,7 +24,7 @@ from six.moves import http_client
 NXDOMAIN = 'test.invalid'
 
 
-def test_server_app():
+def server_app():
     """A basic WSGI app that exposes methods for testing http requests."""
     app = flask.Flask(__name__)
 
@@ -84,7 +84,7 @@ class TransportComplianceTests(object):
         """Provides a test HTTP server that is automatically created before
         a test and destroyed at the end. This server is running the test
         app defined above."""
-        server = WSGIServer(application=test_server_app())
+        server = WSGIServer(application=server_app())
         server.start()
         self.server = server
         yield
