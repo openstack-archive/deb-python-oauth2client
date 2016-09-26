@@ -43,8 +43,8 @@ Build-Depends-Indep: python-crypto,
                      python3-uritemplate,
                      python3-webtest,
 Standards-Version: 3.9.8
-Vcs-Browser: https://anonscm.debian.org/cgit/openstack/python-oauth2client.git
-Vcs-Git: https://alioth.debian.org/anonscm/git/openstack/python-oauth2client.git
+Vcs-Browser: https://git.openstack.org/cgit/openstack/deb-python-oauth2client?h=debian%2Fnewton
+Vcs-Git: https://git.openstack.org/openstack/deb-python-oauth2client -b debian/newton
 Homepage: https://github.com/google/oauth2client
 
 Package: python-oauth2client
