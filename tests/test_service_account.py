@@ -31,7 +31,6 @@ from six.moves import http_client
 from oauth2client import client
 from oauth2client import crypt
 from oauth2client import service_account
-from oauth2client import transport
 from tests import http_mock
 
 
@@ -490,11 +489,11 @@ class JWTAccessCredentialsTests(unittest.TestCase):
         ])
 
         authed_http = self.jwt.authorize(http)
-        transport.request(authed_http, self.url)
+        authed_http.request(self.url)
 
         # Ensure we use the cached token
         utcnow.return_value = T2_DATE
-        transport.request(authed_http, self.url)
+        authed_http.request(self.url)
 
         # Verify mocks.
         certs = {'key': datafile('public_cert.pem')}
@@ -530,7 +529,7 @@ class JWTAccessCredentialsTests(unittest.TestCase):
         ])
 
         authed_http = jwt.authorize(http)
-        transport.request(authed_http, self.url)
+        authed_http.request(self.url)
 
         # Ensure we do not cache the token
         self.assertIsNone(jwt.access_token)
@@ -563,12 +562,12 @@ class JWTAccessCredentialsTests(unittest.TestCase):
             ({'status': http_client.OK}, b''),
         ])
         authed_http = self.jwt.authorize(http)
-        transport.request(authed_http, self.url)
+        authed_http.request(self.url)
         token_1 = self.jwt.access_token
 
         # Expire the token
         utcnow.return_value = T3_DATE
-        transport.request(authed_http, self.url)
+        authed_http.request(self.url)
         token_2 = self.jwt.access_token
         self.assertEquals(self.jwt.token_expiry, T3_EXPIRY_DATE)
         self.assertNotEqual(token_1, token_2)

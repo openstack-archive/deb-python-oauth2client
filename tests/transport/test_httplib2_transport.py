@@ -20,6 +20,7 @@ import mock
 from oauth2client import transport
 import oauth2client.transport.httplib2 as httplib2_transport
 from tests import http_mock
+from tests.transport import test_transport_compliance
 
 
 class Test_get_http_object(unittest.TestCase):
@@ -50,42 +51,29 @@ class Test_make_authorized_http(unittest.TestCase):
 
 
 class Test_request(unittest.TestCase):
-
-    uri = 'http://localhost'
-    method = 'POST'
-    body = 'abc'
-    redirections = 3
-
-    def test_with_request_attr(self):
+    def test_it(self):
+        uri = 'http://localhost'
+        method = 'POST'
+        body = 'abc'
+        redirections = 3
         mock_result = object()
         headers = {'foo': 'bar'}
         http = http_mock.HttpMock(headers=headers, data=mock_result)
 
-        response, content = httplib2_transport.request(
-            http, self.uri, method=self.method, body=self.body,
-            redirections=self.redirections)
-        self.assertEqual(response, headers)
-        self.assertIs(content, mock_result)
+        response = httplib2_transport.request(
+            http, uri, method=method, body=body,
+            redirections=redirections)
+        self.assertEqual(response.headers, headers)
+        self.assertIs(response.data, mock_result)
         # Verify mocks.
         self.assertEqual(http.requests, 1)
-        self.assertEqual(http.uri, self.uri)
-        self.assertEqual(http.method, self.method)
-        self.assertEqual(http.body, self.body)
+        self.assertEqual(http.uri, uri)
+        self.assertEqual(http.method, method)
+        self.assertEqual(http.body, body)
         self.assertIsNone(http.headers)
 
-    def test_with_callable_http(self):
-        headers = {}
-        mock_result = object()
-        http = http_mock.HttpMock(headers=headers, data=mock_result)
 
-        result = httplib2_transport.request(
-            http, self.uri, method=self.method,
-            body=self.body, redirections=self.redirections)
-        self.assertEqual(result, (headers, mock_result))
-        # Verify mock.
-        self.assertEqual(http.requests, 1)
-        self.assertEqual(http.uri, self.uri)
-        self.assertEqual(http.method, self.method)
-        self.assertEqual(http.body, self.body)
-        self.assertIsNone(http.headers)
-        self.assertEqual(http.redirections, self.redirections)
+class TestHttplib2TransportCompliance(
+        test_transport_compliance.TransportComplianceTests):
+    transport = httplib2_transport
+    exceptions = (httplib2.HttpLib2Error,)

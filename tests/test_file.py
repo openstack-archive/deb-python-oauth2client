@@ -32,7 +32,6 @@ from six.moves import urllib_parse
 from oauth2client import _helpers
 from oauth2client import client
 from oauth2client import file as file_module
-from oauth2client import transport
 from tests import http_mock
 
 try:
@@ -191,7 +190,7 @@ class OAuth2ClientFileTests(unittest.TestCase):
         ])
 
         authed_http = credentials.authorize(http)
-        transport.request(authed_http, 'https://example.com')
+        authed_http.request('https://example.com')
         self.assertEqual(credentials.access_token, access_token)
 
     def test_token_refresh_good_store(self):
@@ -237,8 +236,7 @@ class OAuth2ClientFileTests(unittest.TestCase):
         body = six.StringIO('streaming body')
 
         authed_http = credentials.authorize(http)
-        _, content = transport.request(
-            authed_http, 'https://example.com', body=body)
+        _, content = authed_http.request('https://example.com', body=body)
         self.assertEqual(content, 'streaming body')
         self.assertEqual(credentials.access_token, valid_access_token)
 

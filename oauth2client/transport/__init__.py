@@ -43,28 +43,48 @@ def get_http_object(*args, **kwargs):
 
 def make_authorized_http(
         http_object, credentials, refresh_status_code=REFRESH_STATUS_CODES):
-    """Creates an http object that provides credentials to requests.
+    """Creates an HTTP object that provides credentials to requests.
 
     The behavior is transport-specific, but all transports will return a new
-    http object that provides credentials to requests and refreshed credentials
+    HTTP object that provides credentials to requests and refreshed credentials
     when a response in REFRESH_STATUS_CODES is received.
 
     Args:
         credentials: An instance of
             :class:`~oauth2client.client.OAuth2Credentials`.
-        http: The http object to wrap.
+        http: The HTTP object to wrap.
         refresh_status_codes: A sequence of status codes that indicate that
             credentials should be refreshed and the request retried. Defaults
             to REFRESH_STATUS_CODES.
 
     Returns:
-        A new http object that provides credentials to requests.
+        A new HTTP object that provides credentials to requests.
     """
     return get_default_transport().make_authorized_http(
         http_object, credentials, refresh_status_codes=refresh_status_code)
 
 
-def request(http_object, uri, method='GET', body=None, headers=None, **kwargs):
-    """Makes an HTTP request."""
+def request(http_object, uri, method='GET', body=None, headers=None,
+            **kwargs):
+    """Makes an HTTP request.
+
+    Args:
+        http_object: The transport-specific HTTP object to be used to make
+            requests.
+        uri: string, The URI to be requested.
+        method: string, The HTTP method to use for the request. Defaults
+            to 'GET'.
+        body: string, The payload / body in HTTP request. By default
+            there is no payload.
+        headers: dict, Key-value pairs of request headers. By default
+            there are no headers.
+
+    Returns:
+        A response object that will contain at least the following properties:
+
+        * status: int, the HTTP status code.
+        * headers: dict, the HTTP response headers.
+        * data: bytes, the HTTP response body.
+    """
     return get_default_transport().request(
         http_object, uri, method=method, body=body, headers=headers, **kwargs)

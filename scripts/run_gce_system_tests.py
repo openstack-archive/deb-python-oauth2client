@@ -43,10 +43,10 @@ class TestComputeEngine(unittest.TestCase):
         query_params = {'access_token': credentials.access_token}
         token_uri = (oauth2client.GOOGLE_TOKEN_INFO_URI + '?' +
                      urllib.parse.urlencode(query_params))
-        response, content = transport.request(http, token_uri)
+        response = transport._request(http, token_uri)
         self.assertEqual(response.status, http_client.OK)
 
-        content = content.decode('utf-8')
+        content = response.data.decode('utf-8')
         payload = json.loads(content)
         self.assertEqual(payload['access_type'], 'offline')
         self.assertLessEqual(int(payload['expires_in']), 3600)

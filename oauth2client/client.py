@@ -771,11 +771,11 @@ class OAuth2Credentials(Credentials):
         headers = self._generate_refresh_request_headers()
 
         logger.info('Refreshing access_token')
-        resp, content = transport.request(
+        response = transport.request(
             http, self.token_uri, method='POST',
             body=body, headers=headers)
-        content = _helpers._from_bytes(content)
-        if resp.status == http_client.OK:
+        content = _helpers._from_bytes(response.data)
+        if response.status == http_client.OK:
             d = json.loads(content)
             self.token_response = d
             self.access_token = d['access_token']
@@ -798,7 +798,7 @@ class OAuth2Credentials(Credentials):
             # An {'error':...} response body means the token is expired or
             # revoked, so we flag the credentials as such.
             logger.info('Failed to retrieve access token: %s', content)
-            error_msg = 'Invalid response {0}.'.format(resp.status)
+            error_msg = 'Invalid response {0}.'.format(response.status)
             try:
                 d = json.loads(content)
                 if 'error' in d:
@@ -810,7 +810,8 @@ class OAuth2Credentials(Credentials):
                         self.store.locked_put(self)
             except (TypeError, ValueError):
                 pass
-            raise HttpAccessTokenRefreshError(error_msg, status=resp.status)
+            raise HttpAccessTokenRefreshError(
+                error_msg, status=response.status)
 
     def _revoke(self, http):
         """Revokes this credential and deletes the stored copy (if it exists).
@@ -836,15 +837,15 @@ class OAuth2Credentials(Credentials):
         query_params = {'token': token}
         token_revoke_uri = _helpers.update_query_params(
             self.revoke_uri, query_params)
-        resp, content = transport.request(http, token_revoke_uri)
-        if resp.status == http_client.OK:
+        response = transport.request(http, token_revoke_uri)
+        if response.status == http_client.OK:
             self.invalid = True
         else:
-            error_msg = 'Invalid response {0}.'.format(resp.status)
+            error_msg = 'Invalid response {0}.'.format(response.status)
             try:
-                d = json.loads(_helpers._from_bytes(content))
-                if 'error' in d:
-                    error_msg = d['error']
+                error_dict = json.loads(_helpers._from_bytes(response.data))
+                if 'error' in error_dict:
+                    error_msg = error_dict['error']
             except (TypeError, ValueError):
                 pass
             raise TokenRevokeError(error_msg)
@@ -876,13 +877,13 @@ class OAuth2Credentials(Credentials):
         query_params = {'access_token': token, 'fields': 'scope'}
         token_info_uri = _helpers.update_query_params(
             self.token_info_uri, query_params)
-        resp, content = transport.request(http, token_info_uri)
-        content = _helpers._from_bytes(content)
-        if resp.status == http_client.OK:
+        response = transport.request(http, token_info_uri)
+        content = _helpers._from_bytes(response.data)
+        if response.status == http_client.OK:
             d = json.loads(content)
             self.scopes = set(_helpers.string_to_scopes(d.get('scope', '')))
         else:
-            error_msg = 'Invalid response {0}.'.format(resp.status)
+            error_msg = 'Invalid response {0}.'.format(response.status)
             try:
                 d = json.loads(content)
                 if 'error_description' in d:
@@ -985,11 +986,12 @@ def _detect_gce_environment():
     #       "unlikely".
     http = transport.get_http_object(timeout=GCE_METADATA_TIMEOUT)
     try:
-        response, _ = transport.request(
+        response = transport.request(
             http, _GCE_METADATA_URI, headers=_GCE_HEADERS)
+        flavor = response.headers.get(_METADATA_FLAVOR_HEADER)
         return (
             response.status == http_client.OK and
-            response.get(_METADATA_FLAVOR_HEADER) == _DESIRED_METADATA_FLAVOR)
+            flavor == _DESIRED_METADATA_FLAVOR)
     except socket.error:  # socket.timeout or socket.error(64, 'Host is down')
         logger.info('Timeout attempting to reach GCE metadata service.')
         return False
@@ -1522,13 +1524,13 @@ class _CERTIFICATE_CACHE(object):
 
 def _get_certificates(http, cert_uri):
     if cert_uri not in _CERTIFICATE_CACHE.certificates:
-        resp, content = transport.request(http, cert_uri)
-        if resp.status == http_client.OK:
-            certs = json.loads(_helpers._from_bytes(content))
+        response = transport.request(http, cert_uri)
+        if response.status == http_client.OK:
+            certs = json.loads(_helpers._from_bytes(response.data))
             _CERTIFICATE_CACHE.certificates[cert_uri] = certs
         else:
             raise http_client.HTTPException(
-                'Unable to obtain certificate: {0}'.format(resp.status))
+                'Unable to obtain certificate: {0}'.format(response.status))
     return _CERTIFICATE_CACHE.certificates[cert_uri]
 
 
@@ -1972,10 +1974,10 @@ class OAuth2WebServerFlow(Flow):
         if http is None:
             http = transport.get_http_object()
 
-        resp, content = transport.request(
+        response = transport.request(
             http, self.device_uri, method='POST', body=body, headers=headers)
-        content = _helpers._from_bytes(content)
-        if resp.status == http_client.OK:
+        content = _helpers._from_bytes(response.data)
+        if response.status == http_client.OK:
             try:
                 flow_info = json.loads(content)
             except ValueError as exc:
@@ -1984,7 +1986,7 @@ class OAuth2WebServerFlow(Flow):
                     'error: "{1}"'.format(content, exc))
             return DeviceFlowInfo.FromResponse(flow_info)
         else:
-            error_msg = 'Invalid response {0}.'.format(resp.status)
+            error_msg = 'Invalid response {0}.'.format(response.status)
             try:
                 error_dict = json.loads(content)
                 if 'error' in error_dict:
@@ -2057,10 +2059,10 @@ class OAuth2WebServerFlow(Flow):
         if http is None:
             http = transport.get_http_object()
 
-        resp, content = transport.request(
+        response = transport.request(
             http, self.token_uri, method='POST', body=body, headers=headers)
-        d = _parse_exchange_token_response(content)
-        if resp.status == http_client.OK and 'access_token' in d:
+        d = _parse_exchange_token_response(response.data)
+        if response.status == http_client.OK and 'access_token' in d:
             access_token = d['access_token']
             refresh_token = d.get('refresh_token', None)
             if not refresh_token:
@@ -2084,13 +2086,14 @@ class OAuth2WebServerFlow(Flow):
                 token_response=d, scopes=self.scope,
                 token_info_uri=self.token_info_uri)
         else:
-            logger.info('Failed to retrieve access token: %s', content)
+            logger.info('Failed to retrieve access token: %s', response.data)
             if 'error' in d:
                 # you never know what those providers got to say
                 error_msg = (str(d['error']) +
                              str(d.get('error_description', '')))
             else:
-                error_msg = 'Invalid response: {0}.'.format(str(resp.status))
+                error_msg = 'Invalid response: {0}.'.format(
+                    str(response.status))
             raise FlowExchangeError(error_msg)
 
 

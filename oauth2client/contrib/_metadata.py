@@ -54,12 +54,12 @@ def get(http, path, root=METADATA_ROOT, recursive=None):
     url = urlparse.urljoin(root, path)
     url = _helpers._add_query_parameter(url, 'recursive', recursive)
 
-    response, content = transport.request(
+    response = transport.request(
         http, url, headers=METADATA_HEADERS)
 
     if response.status == http_client.OK:
-        decoded = _helpers._from_bytes(content)
-        if response['content-type'] == 'application/json':
+        decoded = _helpers._from_bytes(response.data)
+        if response.headers['content-type'] == 'application/json':
             return json.loads(decoded)
         else:
             return decoded

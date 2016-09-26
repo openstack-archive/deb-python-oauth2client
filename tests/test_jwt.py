@@ -27,7 +27,6 @@ from oauth2client import client
 from oauth2client import crypt
 from oauth2client import file as file_module
 from oauth2client import service_account
-from oauth2client import transport
 from tests import http_mock
 
 
@@ -297,8 +296,8 @@ class SignedJwtAssertionCredentialsTests(unittest.TestCase):
              b'{"access_token":"1/3w","expires_in":3600}'),
             ({'status': http_client.OK}, 'echo_request_headers'),
         ])
-        http = credentials.authorize(http)
-        resp, content = transport.request(http, 'http://example.org')
+        authed_http = credentials.authorize(http)
+        response, content = authed_http.request('http://example.org')
         self.assertEqual(b'Bearer 1/3w', content[b'Authorization'])
 
     def test_credentials_to_from_json(self):
@@ -320,8 +319,8 @@ class SignedJwtAssertionCredentialsTests(unittest.TestCase):
              b'{"access_token":"3/3w","expires_in":3600}'),
             ({'status': http_client.OK}, 'echo_request_headers'),
         ])
-        http = credentials.authorize(http)
-        _, content = transport.request(http, 'http://example.org')
+        authed_http = credentials.authorize(http)
+        _, content = authed_http.request('http://example.org')
         return content
 
     def test_credentials_refresh_without_storage(self):

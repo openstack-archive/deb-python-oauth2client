@@ -883,8 +883,8 @@ class BasicCredentialsTests(unittest.TestCase):
                 ({'status': http_client.OK}, json_resp),
                 ({'status': http_client.OK}, 'echo_request_headers'),
             ])
-            http = self.credentials.authorize(http)
-            resp, content = transport.request(http, 'http://example.com')
+            authed_http = self.credentials.authorize(http)
+            response, content = authed_http.request('http://example.com')
             self.assertEqual(b'Bearer 1/3w', content[b'Authorization'])
             self.assertFalse(self.credentials.access_token_expired)
             self.assertEqual(token_response, self.credentials.token_response)
@@ -901,9 +901,11 @@ class BasicCredentialsTests(unittest.TestCase):
         token_response = {'access_token': '1/3w', 'expires_in': 3600}
         encoded_response = json.dumps(token_response).encode('utf-8')
         http = http_mock.HttpMock(data=encoded_response)
-        http = self.credentials.authorize(http)
-        http = self.credentials.authorize(http)
-        transport.request(http, 'http://example.com')
+        authed_http = self.credentials.authorize(http)
+        # Double-wrap to verify that the request method exposed by the wrapped
+        # http class is the same as its enclosing class.
+        authed_http = self.credentials.authorize(authed_http)
+        authed_http.request('http://example.com')
 
     def test_token_refresh_failure(self):
         for status_code in transport.REFRESH_STATUS_CODES:
@@ -912,10 +914,10 @@ class BasicCredentialsTests(unittest.TestCase):
                 ({'status': http_client.BAD_REQUEST},
                  b'{"error":"access_denied"}'),
             ])
-            http = self.credentials.authorize(http)
+            authed_http = self.credentials.authorize(http)
             with self.assertRaises(
                     client.HttpAccessTokenRefreshError) as exc_manager:
-                transport.request(http, 'http://example.com')
+                authed_http.request('http://example.com')
             self.assertEqual(http_client.BAD_REQUEST,
                              exc_manager.exception.status)
             self.assertTrue(self.credentials.access_token_expired)
@@ -941,9 +943,9 @@ class BasicCredentialsTests(unittest.TestCase):
 
     def test_non_401_error_response(self):
         http = http_mock.HttpMock(headers={'status': http_client.BAD_REQUEST})
-        http = self.credentials.authorize(http)
-        resp, content = transport.request(http, 'http://example.com')
-        self.assertEqual(http_client.BAD_REQUEST, resp.status)
+        authed_http = self.credentials.authorize(http)
+        response, content = authed_http.request(http, 'http://example.com')
+        self.assertEqual(http_client.BAD_REQUEST, response.status)
         self.assertEqual(None, self.credentials.token_response)
 
     def test_to_from_json(self):
@@ -987,8 +989,8 @@ class BasicCredentialsTests(unittest.TestCase):
         authed_http = credentials.authorize(http)
         headers = {u'foo': 3, b'bar': True, 'baz': b'abc'}
         cleaned_headers = {b'foo': b'3', b'bar': b'True', b'baz': b'abc'}
-        transport.request(
-            authed_http, u'http://example.com', method=u'GET', headers=headers)
+        authed_http.request(
+            u'http://example.com', method=u'GET', headers=headers)
         for k, v in cleaned_headers.items():
             self.assertTrue(k in http.headers)
             self.assertEqual(v, http.headers[k])
@@ -996,8 +998,8 @@ class BasicCredentialsTests(unittest.TestCase):
         # Next, test that we do fail on unicode.
         unicode_str = six.unichr(40960) + 'abcd'
         with self.assertRaises(client.NonAsciiHeaderError):
-            transport.request(
-                authed_http, u'http://example.com', method=u'GET',
+            authed_http.request(
+                u'http://example.com', method=u'GET',
                 headers={u'foo': unicode_str})
 
     def test_no_unicode_in_request_params(self):
@@ -1015,8 +1017,8 @@ class BasicCredentialsTests(unittest.TestCase):
 
         http = http_mock.HttpMock()
         authed_http = credentials.authorize(http)
-        transport.request(
-            authed_http, u'http://example.com', method=u'GET',
+        authed_http.request(
+            u'http://example.com', method=u'GET',
             headers={u'foo': u'bar'})
         for k, v in six.iteritems(http.headers):
             self.assertIsInstance(k, six.binary_type)
@@ -1025,8 +1027,8 @@ class BasicCredentialsTests(unittest.TestCase):
         # Test again with unicode strings that can't simply be converted
         # to ASCII.
         with self.assertRaises(client.NonAsciiHeaderError):
-            transport.request(
-                authed_http, u'http://example.com', method=u'GET',
+            authed_http.request(
+                u'http://example.com', method=u'GET',
                 headers={u'foo': u'\N{COMET}'})
 
         self.credentials.token_response = 'foobar'
@@ -1461,8 +1463,8 @@ class BasicCredentialsTests(unittest.TestCase):
                 ({'status': '200'}, token_response),
                 ({'status': '200'}, 'echo_request_headers'),
             ])
-            http = self.credentials.authorize(http)
-            resp, content = transport.request(http, 'http://example.com')
+            authed_http = self.credentials.authorize(http)
+            authed_http.request('http://example.com')
             self.assertEqual(self.credentials.id_token, body)
 
 
@@ -1479,9 +1481,9 @@ class AccessTokenCredentialsTests(unittest.TestCase):
         for status_code in transport.REFRESH_STATUS_CODES:
             http = http_mock.HttpMock(
                 headers={'status': status_code}, data=b'')
-            http = self.credentials.authorize(http)
+            authed_http = self.credentials.authorize(http)
             with self.assertRaises(client.AccessTokenCredentialsError):
-                resp, content = transport.request(http, 'http://example.com')
+                authed_http.request('http://example.com')
 
     def test_token_revoke_success(self):
         _token_revoke_test_helper(
@@ -1495,16 +1497,16 @@ class AccessTokenCredentialsTests(unittest.TestCase):
 
     def test_non_401_error_response(self):
         http = http_mock.HttpMock(headers={'status': http_client.BAD_REQUEST})
-        http = self.credentials.authorize(http)
-        resp, content = transport.request(http, 'http://example.com')
-        self.assertEqual(http_client.BAD_REQUEST, resp.status)
+        authed_http = self.credentials.authorize(http)
+        response, content = authed_http.request(http, 'http://example.com')
+        self.assertEqual(http_client.BAD_REQUEST, response.status)
 
     def test_auth_header_sent(self):
         http = http_mock.HttpMockSequence([
             ({'status': '200'}, 'echo_request_headers'),
         ])
-        http = self.credentials.authorize(http)
-        resp, content = transport.request(http, 'http://example.com')
+        authed_http = self.credentials.authorize(http)
+        response, content = authed_http.request('http://example.com')
         self.assertEqual(b'Bearer foo', content[b'Authorization'])
 
 
@@ -1539,8 +1541,8 @@ class TestAssertionCredentials(unittest.TestCase):
             ({'status': '200'}, b'{"access_token":"1/3w"}'),
             ({'status': '200'}, 'echo_request_headers'),
         ])
-        http = self.credentials.authorize(http)
-        resp, content = transport.request(http, 'http://example.com')
+        authed_http = self.credentials.authorize(http)
+        response, content = authed_http.request('http://example.com')
         self.assertEqual(b'Bearer 1/3w', content[b'Authorization'])
 
     def test_token_revoke_success(self):

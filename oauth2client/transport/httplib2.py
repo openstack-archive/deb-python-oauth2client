@@ -59,7 +59,6 @@ class _AuthorizedHttp(object):
         self.refresh_status_codes = refresh_status_codes
 
     def request(self, uri, method='GET', body=None, headers=None,
-                redirections=httplib2.DEFAULT_MAX_REDIRECTS,
                 **kwargs):
         """Make an authenticated request, refreshing credentials as needed."""
         _credential_refresh_attempt = kwargs.pop(
@@ -80,7 +79,7 @@ class _AuthorizedHttp(object):
             body_stream_position = body.tell()
 
         response, content = self.http.request(
-            uri, method, body, headers, redirections, **kwargs)
+            uri, method, body, headers, **kwargs)
 
         # If the response indicated that the credentials needed to be
         # refreshed, then refresh the credentials and re-attempt the
@@ -108,7 +107,6 @@ class _AuthorizedHttp(object):
             # To iterate is human, to recurse, divine.
             return self.request(
                 uri, method, body=body, headers=None,
-                redirections=redirections,
                 _credential_refresh_attempt=_credential_refresh_attempt + 1,
                 **kwargs)
 
@@ -135,30 +133,31 @@ def make_authorized_http(credentials, http, refresh_status_codes):
     return _AuthorizedHttp(http, credentials, refresh_status_codes)
 
 
-def request(http, uri, method='GET', body=None, headers=None,
-            redirections=httplib2.DEFAULT_MAX_REDIRECTS,
-            **kwargs):
+class _ResponseWrapper(object):
+    """HTTP response value wrapper
+
+    Wraps httplib2's response and response body into an object that
+    satisifies the return value indicated by
+    :meth:`oauth2client.transport.request`.
+    """
+
+    def __init__(self, httplib2_response, data):
+        # httplib2's response object acts as a dictionary.
+        self.headers = httplib2_response
+        self.data = data
+        self.status = httplib2_response.status
+
+
+def request(http, uri, method='GET', body=None, headers=None, **kwargs):
     """Make an HTTP request with an HTTP object and arguments.
 
-    Args:
-        http: httplib2.Http, an http object to be used to make requests.
-        uri: string, The URI to be requested.
-        method: string, The HTTP method to use for the request. Defaults
-                to 'GET'.
-        body: string, The payload / body in HTTP request. By default
-              there is no payload.
-        headers: dict, Key-value pairs of request headers. By default
-                 there are no headers.
-        redirections: int, The number of allowed 203 redirects for
-                      the request. Defaults to 5.
-        connection_type: httplib.HTTPConnection, a subclass to be used for
-                         establishing connection. If not set, the type
-                         will be determined from the ``uri``.
+    The arguments match :func:`oauth2client.transport.request`. Additional
+    arguments are passed through to :meth:`httplib2.Http.request`.
 
     Returns:
-        tuple, a pair of a httplib2.Response with the status code and other
-        headers and the bytes of the content returned.
+        An instance of :class:`_ResponseWrapper`.
     """
-    return http.request(
-        uri, method=method, body=body, headers=headers,
-        redirections=redirections, **kwargs)
+    response, data = http.request(
+        uri, method=method, body=body, headers=headers, **kwargs)
+
+    return _ResponseWrapper(response, data)
