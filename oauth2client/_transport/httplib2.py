@@ -20,13 +20,15 @@ import logging
 
 import httplib2
 
-from oauth2client.transport import _helpers
+from oauth2client._transport import _helpers
 
 
 _LOGGER = logging.getLogger(__name__)
 # Properties present in file-like streams / buffers.
 _STREAM_PROPERTIES = ('read', 'seek', 'tell')
 _MAX_REFRESH_ATTEMPTS = 2
+
+HTTP_OBJECT_CLASSES = (httplib2.Http,)
 
 
 def get_http_object(*args, **kwargs):
@@ -112,8 +114,18 @@ class _AuthorizedHttp(object):
 
         return response, content
 
+    @property
+    def timeout(self):
+        """Proxy to self.http."""
+        return self.http.timeout
 
-def make_authorized_http(credentials, http, refresh_status_codes):
+    @timeout.setter
+    def timeout(self, value):
+        """Proxy to self.http."""
+        self.http.timeout = value
+
+
+def make_authorized_http(http, credentials, refresh_status_codes):
     """Creates an http object that provides credentials to requests.
 
     The behavior is transport-specific, but all transports will return a new
@@ -121,9 +133,9 @@ def make_authorized_http(credentials, http, refresh_status_codes):
     when a response in REFRESH_STATUS_CODES is received.
 
     Args:
+        http: The http object to wrap.
         credentials: An instance of
             :class:`~oauth2client.client.OAuth2Credentials`.
-        http: The http object to wrap.
         refresh_status_codes: A sequence of status codes that indicate that
             credentials should be refreshed and the request retried.
 
@@ -148,7 +160,8 @@ class _ResponseWrapper(object):
         self.status = httplib2_response.status
 
 
-def request(http, uri, method='GET', body=None, headers=None, **kwargs):
+def request(http, uri, method='GET', body=None, headers=None,
+            timeout=None, **kwargs):
     """Make an HTTP request with an HTTP object and arguments.
 
     The arguments match :func:`oauth2client.transport.request`. Additional
@@ -157,7 +170,18 @@ def request(http, uri, method='GET', body=None, headers=None, **kwargs):
     Returns:
         An instance of :class:`_ResponseWrapper`.
     """
-    response, data = http.request(
-        uri, method=method, body=body, headers=headers, **kwargs)
+
+    # Httplib2 doesn't let you set the timeout when calling request, however,
+    # it is a public attribute and httplib2 is not thread-safe, so just change
+    # it.
+    original_timeout = http.timeout
+    if timeout is not None:
+        http.timeout = timeout
+
+    try:
+        response, data = http.request(
+            uri, method=method, body=body, headers=headers, **kwargs)
+    finally:
+        http.timeout = original_timeout
 
     return _ResponseWrapper(response, data)

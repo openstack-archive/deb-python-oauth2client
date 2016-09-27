@@ -18,7 +18,7 @@ import mock
 import urllib3
 import urllib3.exceptions
 
-import oauth2client.transport.urllib3 as urllib3_transport
+import oauth2client._transport.urllib3 as urllib3_transport
 from tests.transport import transport_compliance
 
 
@@ -35,7 +35,7 @@ class TestUrllib3Transport(unittest.TestCase):
         http.urlopen.return_value = response
         credentials = transport_compliance.MockCredentials('token')
         authed_http = urllib3_transport.make_authorized_http(
-            credentials, http, ())
+            http, credentials, ())
 
         return http, authed_http, response, credentials
 
@@ -70,6 +70,17 @@ class TestUrllib3Transport(unittest.TestCase):
 
         self.assertTrue(http.__enter__.called)
         self.assertTrue(http.__exit__.called)
+
+    def test_request_timeout(self):
+        http = mock.Mock()
+
+        urllib3_transport.request(http, 'http://example.com')
+        assert http.request.called_with(
+            'GET', 'http://example.com', body=None, headers=None)
+
+        urllib3_transport.request(http, 'http://example.com', timeout=5)
+        assert http.request.called_with(
+            'GET', 'http://example.com', body=None, headers=None, timeout=5)
 
 
 class TestUrllib3TransportCompliance(

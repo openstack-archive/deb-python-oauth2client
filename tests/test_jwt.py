@@ -154,7 +154,8 @@ class CryptTests(unittest.TestCase):
 
         http = http_mock.HttpMock(data=datafile('certs.json'))
         patch = mock.patch(
-            'oauth2client.transport.get_http_object', return_value=http)
+            'oauth2client._transport._transports.get_preferred_http_object',
+            return_value=http)
 
         with patch:
             contents = client.verify_id_token(

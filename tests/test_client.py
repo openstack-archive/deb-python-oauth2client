@@ -32,10 +32,10 @@ from six.moves import urllib
 
 import oauth2client
 from oauth2client import _helpers
+from oauth2client import _transport
 from oauth2client import client
 from oauth2client import clientsecrets
 from oauth2client import service_account
-from oauth2client import transport
 from tests import http_mock
 
 
@@ -366,8 +366,10 @@ class GoogleCredentialsTests(unittest.TestCase):
         http = http_mock.HttpMock(headers=headers)
         with mock.patch('oauth2client.client.os') as os_module:
             os_module.environ = {client._SERVER_SOFTWARE: server_software}
-            with mock.patch('oauth2client.transport.get_http_object',
-                            return_value=http) as new_http:
+            with mock.patch(
+                    'oauth2client._transport._transports.'
+                    'get_preferred_http_object',
+                    return_value=http) as new_http:
                 if server_software == '':
                     self.assertFalse(client._in_gae_environment())
                 else:
@@ -380,8 +382,8 @@ class GoogleCredentialsTests(unittest.TestCase):
 
                 # Verify mocks.
                 if server_software == '':
-                    new_http.assert_called_once_with(
-                        timeout=client.GCE_METADATA_TIMEOUT)
+                    self.assertEqual(
+                        http.request_timeout, client.GCE_METADATA_TIMEOUT)
                     self.assertEqual(http.requests, 1)
                     self.assertEqual(http.uri, client._GCE_METADATA_URI)
                     self.assertEqual(http.method, 'GET')
@@ -400,19 +402,17 @@ class GoogleCredentialsTests(unittest.TestCase):
 
     @mock.patch('oauth2client.client.os.environ',
                 new={client._SERVER_SOFTWARE: ''})
-    @mock.patch('oauth2client.transport.get_http_object',
-                return_value=object())
-    @mock.patch('oauth2client.transport.request',
+    @mock.patch('oauth2client._transport.request',
                 side_effect=socket.timeout())
-    def test_environment_check_gce_timeout(self, mock_request, new_http):
+    def test_environment_check_gce_timeout(self, mock_request):
         self.assertFalse(client._in_gae_environment())
         self.assertFalse(client._in_gce_environment())
 
         # Verify mocks.
-        new_http.assert_called_once_with(timeout=client.GCE_METADATA_TIMEOUT)
         mock_request.assert_called_once_with(
-            new_http.return_value, client._GCE_METADATA_URI,
-            headers=client._GCE_HEADERS)
+            None, client._GCE_METADATA_URI,
+            headers=client._GCE_HEADERS,
+            timeout=client.GCE_METADATA_TIMEOUT)
 
     def test_environ_check_gae_module_unknown(self):
         with mock_module_import('google.appengine'):
@@ -875,7 +875,7 @@ class BasicCredentialsTests(unittest.TestCase):
             self.old_positional_enforcement)
 
     def test_token_refresh_success(self):
-        for status_code in transport.REFRESH_STATUS_CODES:
+        for status_code in _transport.REFRESH_STATUS_CODES:
             token_response = {'access_token': '1/3w', 'expires_in': 3600}
             json_resp = json.dumps(token_response).encode('utf-8')
             http = http_mock.HttpMockSequence([
@@ -889,26 +889,8 @@ class BasicCredentialsTests(unittest.TestCase):
             self.assertFalse(self.credentials.access_token_expired)
             self.assertEqual(token_response, self.credentials.token_response)
 
-    def test_recursive_authorize(self):
-        # Tests that OAuth2Credentials doesn't introduce new method
-        # constraints. Formerly, OAuth2Credentials.authorize monkeypatched the
-        # request method of the passed in HTTP object with a wrapper annotated
-        # with @_helpers.positional(1). Since the original method has no such
-        # annotation, that meant that the wrapper was violating the contract of
-        # the original method by adding a new requirement to it. And in fact
-        # the wrapper itself doesn't even respect that requirement. So before
-        # the removal of the annotation, this test would fail.
-        token_response = {'access_token': '1/3w', 'expires_in': 3600}
-        encoded_response = json.dumps(token_response).encode('utf-8')
-        http = http_mock.HttpMock(data=encoded_response)
-        authed_http = self.credentials.authorize(http)
-        # Double-wrap to verify that the request method exposed by the wrapped
-        # http class is the same as its enclosing class.
-        authed_http = self.credentials.authorize(authed_http)
-        authed_http.request('http://example.com')
-
     def test_token_refresh_failure(self):
-        for status_code in transport.REFRESH_STATUS_CODES:
+        for status_code in _transport.REFRESH_STATUS_CODES:
             http = http_mock.HttpMockSequence([
                 ({'status': status_code}, b''),
                 ({'status': http_client.BAD_REQUEST},
@@ -1148,30 +1130,6 @@ class BasicCredentialsTests(unittest.TestCase):
         # - access_token_expired
         expected_utcnow_calls = [mock.call()] * (2 + 3 + 5)
         self.assertEqual(expected_utcnow_calls, utcnow.mock_calls)
-
-    @mock.patch.object(client.OAuth2Credentials, 'refresh')
-    @mock.patch.object(client.OAuth2Credentials, '_expires_in',
-                       return_value=1835)
-    def test_get_access_token_without_http(self, expires_in, refresh_mock):
-        credentials = client.OAuth2Credentials(None, None, None, None,
-                                               None, None, None)
-        # Make sure access_token_expired returns True
-        credentials.invalid = True
-        # Specify a token so we can use it in the response.
-        credentials.access_token = 'ya29-s3kr3t'
-
-        with mock.patch('oauth2client.transport.get_http_object',
-                        return_value=object()) as new_http:
-            token_info = credentials.get_access_token()
-            expires_in.assert_called_once_with()
-            refresh_mock.assert_called_once_with(new_http.return_value)
-            new_http.assert_called_once_with()
-
-        self.assertIsInstance(token_info, client.AccessTokenInfo)
-        self.assertEqual(token_info.access_token,
-                         credentials.access_token)
-        self.assertEqual(token_info.expires_in,
-                         expires_in.return_value)
 
     @mock.patch.object(client.OAuth2Credentials, 'refresh')
     @mock.patch.object(client.OAuth2Credentials, '_expires_in',
@@ -1447,7 +1405,7 @@ class BasicCredentialsTests(unittest.TestCase):
             self.credentials.retrieve_scopes(http)
 
     def test_refresh_updates_id_token(self):
-        for status_code in transport.REFRESH_STATUS_CODES:
+        for status_code in _transport.REFRESH_STATUS_CODES:
             body = {'foo': 'bar'}
             body_json = json.dumps(body).encode('ascii')
             payload = base64.urlsafe_b64encode(body_json).strip(b'=')
@@ -1478,7 +1436,7 @@ class AccessTokenCredentialsTests(unittest.TestCase):
             revoke_uri=oauth2client.GOOGLE_REVOKE_URI)
 
     def test_token_refresh_success(self):
-        for status_code in transport.REFRESH_STATUS_CODES:
+        for status_code in _transport.REFRESH_STATUS_CODES:
             http = http_mock.HttpMock(
                 headers={'status': status_code}, data=b'')
             authed_http = self.credentials.authorize(http)
@@ -1751,8 +1709,10 @@ class OAuth2WebServerFlowTest(unittest.TestCase):
             ({'status': http_client.OK}, content),
         ])
         if default_http:
-            with mock.patch('oauth2client.transport.get_http_object',
-                            return_value=http) as new_http:
+            with mock.patch(
+                    'oauth2client._transport._transports.'
+                    'get_preferred_http_object',
+                    return_value=http) as new_http:
                 result = flow.step1_get_device_and_user_codes()
                 # Check the mock was called.
                 new_http.assert_called_once_with()

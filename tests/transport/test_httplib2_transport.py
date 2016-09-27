@@ -15,62 +15,15 @@
 import unittest
 
 import httplib2
-import mock
 
-from oauth2client import transport
-import oauth2client.transport.httplib2 as httplib2_transport
-from tests import http_mock
+import oauth2client._transport.httplib2 as httplib2_transport
 from tests.transport import transport_compliance
 
 
-class Test_get_http_object(unittest.TestCase):
-
-    @mock.patch.object(httplib2, 'Http', return_value=object())
-    def test_it(self, http_klass):
+class TestHttplib2Transport(unittest.TestCase):
+    def test_get_http_object(self):
         result = httplib2_transport.get_http_object()
-        self.assertEqual(result, http_klass.return_value)
-        http_klass.assert_called_once_with()
-
-    @mock.patch.object(httplib2, 'Http', return_value=object())
-    def test_with_args(self, http_klass):
-        result = httplib2_transport.get_http_object(1, 2, foo='bar')
-        self.assertEqual(result, http_klass.return_value)
-        http_klass.assert_called_once_with(1, 2, foo='bar')
-
-
-class Test_make_authorized_http(unittest.TestCase):
-
-    def test_wrap(self):
-        credentials = object()
-        http = mock.Mock()
-        result = httplib2_transport.make_authorized_http(
-            credentials, http, transport.REFRESH_STATUS_CODES)
-        self.assertNotEqual(result, http)
-        self.assertEqual(result.http, http)
-        self.assertIs(result.credentials, credentials)
-
-
-class Test_request(unittest.TestCase):
-    def test_it(self):
-        uri = 'http://localhost'
-        method = 'POST'
-        body = 'abc'
-        redirections = 3
-        mock_result = object()
-        headers = {'foo': 'bar'}
-        http = http_mock.HttpMock(headers=headers, data=mock_result)
-
-        response = httplib2_transport.request(
-            http, uri, method=method, body=body,
-            redirections=redirections)
-        self.assertEqual(response.headers, headers)
-        self.assertIs(response.data, mock_result)
-        # Verify mocks.
-        self.assertEqual(http.requests, 1)
-        self.assertEqual(http.uri, uri)
-        self.assertEqual(http.method, method)
-        self.assertEqual(http.body, body)
-        self.assertIsNone(http.headers)
+        self.assertIsInstance(result, httplib2.Http)
 
 
 class TestHttplib2TransportCompliance(

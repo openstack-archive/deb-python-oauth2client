@@ -118,7 +118,7 @@ class TransportComplianceTests(object):
         credentials = MockCredentials('token')
         http = self.transport.get_http_object()
         authed_http = self.transport.make_authorized_http(
-            credentials, http, (http_client.UNAUTHORIZED,))
+            http, credentials, (http_client.UNAUTHORIZED,))
 
         # Use transport.request instead of authed_http request because this
         # has to work across multiple transports - the http object is
@@ -136,7 +136,7 @@ class TransportComplianceTests(object):
         credentials = MockCredentials('token')
         http = self.transport.get_http_object()
         authed_http = self.transport.make_authorized_http(
-            credentials, http, (http_client.UNAUTHORIZED,))
+            http, credentials, (http_client.UNAUTHORIZED,))
 
         # Use transport.request instead of authed_http request because this
         # has to work across multiple transports - the http object is

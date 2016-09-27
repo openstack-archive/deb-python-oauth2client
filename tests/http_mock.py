@@ -47,6 +47,7 @@ class HttpMock(object):
         self.body = None
         self.headers = None
         self.requests = 0
+        self.timeout = None
 
     def request(self, uri,
                 method='GET',
@@ -60,6 +61,7 @@ class HttpMock(object):
         self.headers = headers
         self.redirections = redirections
         self.requests += 1
+        self.request_timeout = self.timeout
         return ResponseMock(self.response_headers), self.data
 
 
@@ -93,6 +95,7 @@ class HttpMockSequence(object):
         """
         self._iterable = iterable
         self.requests = []
+        self.timeout = None
 
     def request(self, uri,
                 method='GET',

@@ -183,7 +183,6 @@ import six.moves.http_client as httplib
 
 from oauth2client import client
 from oauth2client import clientsecrets
-from oauth2client import transport
 from oauth2client.contrib import dictionary_storage
 
 
@@ -536,20 +535,18 @@ class UserOAuth2(object):
         else:
             return curry_wrapper
 
-    def http(self, *args, **kwargs):
+    def http(self, http):
         """Returns an authorized http instance.
 
         Can only be called if there are valid credentials for the user, such
         as inside of a view that is decorated with @required.
 
         Args:
-            *args: Positional arguments passed to httplib2.Http constructor.
-            **kwargs: Positional arguments passed to httplib2.Http constructor.
+            http (Any): A transport http object.
 
         Raises:
-            ValueError if no credentials are available.
+            ValueError: if no credentials are available.
         """
         if not self.credentials:
             raise ValueError('No credentials available.')
-        return self.credentials.authorize(
-            transport.get_http_object(*args, **kwargs))
+        return self.credentials.authorize(http)

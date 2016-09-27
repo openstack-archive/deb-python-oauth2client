@@ -234,7 +234,6 @@ from django.core import urlresolvers
 from six.moves.urllib import parse
 
 from oauth2client import clientsecrets
-from oauth2client import transport
 from oauth2client.contrib import dictionary_storage
 from oauth2client.contrib.django_util import storage
 
@@ -481,9 +480,8 @@ class UserOAuth2(object):
         """Gets the authorized credentials for this flow, if they exist."""
         return _credentials_from_request(self.request)
 
-    @property
-    def http(self):
+    def http(self, http):
         """Helper: create HTTP client authorized with OAuth2 credentials."""
         if self.has_credentials():
-            return self.credentials.authorize(transport.get_http_object())
+            return self.credentials.authorize(http)
         return None

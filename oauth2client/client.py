@@ -35,8 +35,8 @@ from six.moves import urllib
 import oauth2client
 from oauth2client import _helpers
 from oauth2client import _pkce
+from oauth2client import _transport
 from oauth2client import clientsecrets
-from oauth2client import transport
 
 
 HAS_OPENSSL = False
@@ -513,7 +513,7 @@ class OAuth2Credentials(Credentials):
             http = httplib2.Http()
             authed_http = credentials.authorize(http)
         """
-        return transport.make_authorized_http(self, http)
+        return _transport.make_authorized_http(http, self)
 
     def refresh(self, http):
         """Forces a refresh of the access_token.
@@ -637,8 +637,6 @@ class OAuth2Credentials(Credentials):
         If the token expired, refresh it.
         """
         if not self.access_token or self.access_token_expired:
-            if not http:
-                http = transport.get_http_object()
             self.refresh(http)
         return AccessTokenInfo(access_token=self.access_token,
                                expires_in=self._expires_in())
@@ -771,7 +769,7 @@ class OAuth2Credentials(Credentials):
         headers = self._generate_refresh_request_headers()
 
         logger.info('Refreshing access_token')
-        response = transport.request(
+        response = _transport.request(
             http, self.token_uri, method='POST',
             body=body, headers=headers)
         content = _helpers._from_bytes(response.data)
@@ -837,7 +835,7 @@ class OAuth2Credentials(Credentials):
         query_params = {'token': token}
         token_revoke_uri = _helpers.update_query_params(
             self.revoke_uri, query_params)
-        response = transport.request(http, token_revoke_uri)
+        response = _transport.request(http, token_revoke_uri)
         if response.status == http_client.OK:
             self.invalid = True
         else:
@@ -877,7 +875,7 @@ class OAuth2Credentials(Credentials):
         query_params = {'access_token': token, 'fields': 'scope'}
         token_info_uri = _helpers.update_query_params(
             self.token_info_uri, query_params)
-        response = transport.request(http, token_info_uri)
+        response = _transport.request(http, token_info_uri)
         content = _helpers._from_bytes(response.data)
         if response.status == http_client.OK:
             d = json.loads(content)
@@ -984,10 +982,10 @@ def _detect_gce_environment():
     #       could lead to false negatives in the event that we are on GCE, but
     #       the metadata resolution was particularly slow. The latter case is
     #       "unlikely".
-    http = transport.get_http_object(timeout=GCE_METADATA_TIMEOUT)
     try:
-        response = transport.request(
-            http, _GCE_METADATA_URI, headers=_GCE_HEADERS)
+        response = _transport.request(
+            None, _GCE_METADATA_URI, headers=_GCE_HEADERS,
+            timeout=GCE_METADATA_TIMEOUT)
         flavor = response.headers.get(_METADATA_FLAVOR_HEADER)
         return (
             response.status == http_client.OK and
@@ -1524,7 +1522,7 @@ class _CERTIFICATE_CACHE(object):
 
 def _get_certificates(http, cert_uri):
     if cert_uri not in _CERTIFICATE_CACHE.certificates:
-        response = transport.request(http, cert_uri)
+        response = _transport.request(http, cert_uri)
         if response.status == http_client.OK:
             certs = json.loads(_helpers._from_bytes(response.data))
             _CERTIFICATE_CACHE.certificates[cert_uri] = certs
@@ -1558,9 +1556,6 @@ def verify_id_token(id_token, audience, http=None,
         CryptoUnavailableError: if no crypto library is available.
     """
     _require_crypto_or_die()
-
-    if http is None:
-        http = transport.get_http_object()
 
     try:
         certs = _get_certificates(http, cert_uri)
@@ -1971,10 +1966,7 @@ class OAuth2WebServerFlow(Flow):
         if self.user_agent is not None:
             headers['user-agent'] = self.user_agent
 
-        if http is None:
-            http = transport.get_http_object()
-
-        response = transport.request(
+        response = _transport.request(
             http, self.device_uri, method='POST', body=body, headers=headers)
         content = _helpers._from_bytes(response.data)
         if response.status == http_client.OK:
@@ -2056,10 +2048,7 @@ class OAuth2WebServerFlow(Flow):
         if self.user_agent is not None:
             headers['user-agent'] = self.user_agent
 
-        if http is None:
-            http = transport.get_http_object()
-
-        response = transport.request(
+        response = _transport.request(
             http, self.token_uri, method='POST', body=body, headers=headers)
         d = _parse_exchange_token_response(response.data)
         if response.status == http_client.OK and 'access_token' in d:

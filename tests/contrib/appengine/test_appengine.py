@@ -674,7 +674,8 @@ class DecoratorTests(unittest.TestCase):
             app.router.match_routes[0].handler.__name__,
             'OAuth2Handler')
 
-    @mock.patch('oauth2client.transport.get_http_object')
+    @mock.patch(
+        'oauth2client._transport._transports.get_preferred_http_object')
     def test_required(self, new_http):
         new_http.return_value = http_mock.HttpMock(data=DEFAULT_RESP)
         # An initial request to an oauth_required decorated path should be a
@@ -760,7 +761,8 @@ class DecoratorTests(unittest.TestCase):
         # Check the mocks were called.
         new_http.assert_called_once_with()
 
-    @mock.patch('oauth2client.transport.get_http_object')
+    @mock.patch(
+        'oauth2client._transport._transports.get_preferred_http_object')
     def test_storage_delete(self, new_http):
         new_http.return_value = http_mock.HttpMock(data=DEFAULT_RESP)
         # An initial request to an oauth_required decorated path should be a
@@ -801,7 +803,8 @@ class DecoratorTests(unittest.TestCase):
         # Check the mocks were called.
         new_http.assert_called_once_with()
 
-    @mock.patch('oauth2client.transport.get_http_object')
+    @mock.patch(
+        'oauth2client._transport._transports.get_preferred_http_object')
     def test_aware(self, new_http):
         new_http.return_value = http_mock.HttpMock(data=DEFAULT_RESP)
         # An initial request to an oauth_aware decorated path should
@@ -893,9 +896,7 @@ class DecoratorTests(unittest.TestCase):
         self.decorator._token_response_param = 'foobar'
         self.test_required()
 
-    @mock.patch('oauth2client.transport.get_http_object')
-    def test_decorator_from_client_secrets(self, new_http):
-        new_http.return_value = http_mock.HttpMock(data=DEFAULT_RESP)
+    def test_decorator_from_client_secrets(self):
         # Execute test after setting up mock.
         decorator = appengine.OAuth2DecoratorFromClientSecrets(
             datafile('client_secrets.json'),
@@ -905,7 +906,7 @@ class DecoratorTests(unittest.TestCase):
         self.assertFalse(decorator._in_error)
         self.decorator = decorator
         self.test_required()
-        http = self.decorator.http()
+        http = self.decorator.http(http_mock.HttpMock())
         self.assertEquals('foo_access_token',
                           http.credentials.access_token)
 
@@ -914,9 +915,6 @@ class DecoratorTests(unittest.TestCase):
                          'https://accounts.google.com/o/oauth2/revoke')
         self.assertEqual(self.decorator._revoke_uri,
                          self.decorator.credentials.revoke_uri)
-
-        # Check the mocks were called.
-        new_http.assert_called_once_with()
 
     def test_decorator_from_client_secrets_toplevel(self):
         decorator_patch = mock.patch(
@@ -1032,7 +1030,8 @@ class DecoratorTests(unittest.TestCase):
         # This is never set, but it's consistent with other tests.
         self.assertFalse(decorator._in_error)
 
-    @mock.patch('oauth2client.transport.get_http_object')
+    @mock.patch(
+        'oauth2client._transport._transports.get_preferred_http_object')
     def test_invalid_state(self, new_http):
         new_http.return_value = http_mock.HttpMock(data=DEFAULT_RESP)
         # Execute test after setting up mock.

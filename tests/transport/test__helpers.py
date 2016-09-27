@@ -15,7 +15,7 @@
 import unittest
 
 from oauth2client import client
-from oauth2client.transport import _helpers
+from oauth2client._transport import _helpers
 
 
 class Test_initialize_headers(unittest.TestCase):

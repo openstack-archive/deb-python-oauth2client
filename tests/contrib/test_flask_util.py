@@ -223,8 +223,10 @@ class FlaskOAuth2Tests(unittest.TestCase):
     def test_callback_view(self):
         self.oauth2.storage = mock.Mock()
         with self.app.test_client() as client:
-            with mock.patch(
-                    'oauth2client.transport.get_http_object') as new_http:
+            http_patch = mock.patch(
+                'oauth2client._transport._transports.'
+                'get_preferred_http_object')
+            with http_patch as new_http:
                 # Set-up mock.
                 http = http_mock.HttpMock(data=DEFAULT_RESP)
                 new_http.return_value = http
@@ -281,8 +283,10 @@ class FlaskOAuth2Tests(unittest.TestCase):
         with self.app.test_client() as client:
             state = self._setup_callback_state(client)
 
-            with mock.patch(
-                    'oauth2client.transport.get_http_object') as new_http:
+            http_patch = mock.patch(
+                'oauth2client._transport._transports.'
+                'get_preferred_http_object')
+            with http_patch as new_http:
                 # Set-up mock.
                 new_http.return_value = http_mock.HttpMock(
                     headers={'status': httplib.INTERNAL_SERVER_ERROR},
@@ -326,7 +330,7 @@ class FlaskOAuth2Tests(unittest.TestCase):
             self.assertTrue(self.oauth2.user_id is None)
             self.assertTrue(self.oauth2.email is None)
             with self.assertRaises(ValueError):
-                self.oauth2.http()
+                self.oauth2.http(http_mock.HttpMock())
             self.assertFalse(self.oauth2.storage.get())
             self.oauth2.storage.delete()
 
@@ -341,7 +345,7 @@ class FlaskOAuth2Tests(unittest.TestCase):
                 credentials.refresh_token)
             self.assertEqual(self.oauth2.user_id, '123')
             self.assertEqual(self.oauth2.email, 'user@example.com')
-            self.assertTrue(self.oauth2.http())
+            self.assertTrue(self.oauth2.http(http_mock.HttpMock()))
 
     @mock.patch('oauth2client.client._UTCNOW')
     def test_with_expired_credentials(self, utcnow):
@@ -489,7 +493,10 @@ class FlaskOAuth2Tests(unittest.TestCase):
     def test_incremental_auth_exchange(self):
         self._create_incremental_auth_app()
 
-        with mock.patch('oauth2client.transport.get_http_object') as new_http:
+        http_patch = mock.patch(
+            'oauth2client._transport._transports.get_preferred_http_object')
+
+        with http_patch as new_http:
             # Set-up mock.
             new_http.return_value = http_mock.HttpMock(data=DEFAULT_RESP)
             # Run tests.

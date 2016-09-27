@@ -17,9 +17,17 @@
 import logging
 
 from oauth2client import _helpers
+from oauth2client._transport import httplib2
+from tests import http_mock
 
 
 logging.basicConfig(level=logging.INFO)
+
+
+# Make HttpMock instances use the httplib2 transport.
+httplib2.HTTP_OBJECT_CLASSES = (
+    (http_mock.HttpMock, http_mock.HttpMockSequence) +
+    httplib2.HTTP_OBJECT_CLASSES)
 
 
 def pytest_addoption(parser):

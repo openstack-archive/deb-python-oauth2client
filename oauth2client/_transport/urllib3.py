@@ -21,11 +21,13 @@ import logging
 import urllib3
 from urllib3 import request
 
-from oauth2client.transport import _helpers
+from oauth2client._transport import _helpers
 
 
 _LOGGER = logging.getLogger(__name__)
 _MAX_REFRESH_ATTEMPTS = 2
+
+HTTP_OBJECT_CLASSES = (urllib3.request.RequestMethods,)
 
 
 def get_http_object(*args, **kwargs):
@@ -130,7 +132,7 @@ class AuthorizedHttp(request.RequestMethods):
         self.http.headers = value
 
 
-def make_authorized_http(credentials, http, refresh_status_codes):
+def make_authorized_http(http, credentials, refresh_status_codes):
     """Creates an http object that provides credentials to requests.
 
     The behavior is transport-specific, but all transports will return a new
@@ -152,7 +154,8 @@ def make_authorized_http(credentials, http, refresh_status_codes):
     return AuthorizedHttp(http, credentials, refresh_status_codes)
 
 
-def request(http_object, uri, method='GET', body=None, headers=None, **kwargs):
+def request(http_object, uri, method='GET', body=None, headers=None,
+            timeout=None, **kwargs):
     """Make an HTTP request with an HTTP object and arguments.
 
     The arguments and return value satisfy the match
@@ -163,13 +166,22 @@ def request(http_object, uri, method='GET', body=None, headers=None, **kwargs):
     Args:
         http_object (urllib3.request.RequestMethods): Any instance that
             provides the :class:`RequestMethods` interface.
-        uri (string): The URI to be requested.
-        method (string): The HTTP method to use for the request. Defaults
+        uri (str): The URI to be requested.
+        method (str): The HTTP method to use for the request. Defaults
             to 'GET'.
-        body (string): The payload / body in HTTP request.
-        headers (Mapping): Key-value pairs of request headers.
+        body (bytes): The payload / body in HTTP request.
+        headers (Mapping): Request headers.
+        timeout (Optional(int)): The number of seconds to wait for a response
+            from the server. If not specified or if None, the urllib3 default
+            timeout will be used.
     Returns:
         urllib3.response.HTTPResponse: The HTTP response.
     """
+
+    # Urllib3 uses a sentinel default value for timeout, so only set it if
+    # specified.
+    if timeout is not None:
+        kwargs['timeout'] = timeout
+
     return http_object.request(
         method, uri, body=body, headers=headers, **kwargs)

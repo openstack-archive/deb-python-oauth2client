@@ -35,7 +35,6 @@ import oauth2client
 from oauth2client import _helpers
 from oauth2client import client
 from oauth2client import clientsecrets
-from oauth2client import transport
 from oauth2client.contrib import xsrfutil
 
 # This is a temporary fix for a Google internal issue.
@@ -727,19 +726,14 @@ class OAuth2Decorator(object):
         url = self.flow.step1_get_authorize_url()
         return str(url)
 
-    def http(self, *args, **kwargs):
+    def http(self, http):
         """Returns an authorized http instance.
 
         Must only be called from within an @oauth_required decorated method, or
         from within an @oauth_aware decorated method where has_credentials()
         returns True.
-
-        Args:
-            *args: Positional arguments passed to httplib2.Http constructor.
-            **kwargs: Positional arguments passed to httplib2.Http constructor.
         """
-        return self.credentials.authorize(
-            transport.get_http_object(*args, **kwargs))
+        return self.credentials.authorize(http)
 
     @property
     def callback_path(self):

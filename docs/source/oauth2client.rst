@@ -7,7 +7,6 @@ Subpackages
 .. toctree::
 
     oauth2client.contrib
-    oauth2client.transport
 
 Submodules
 ----------

@@ -26,6 +26,7 @@ from six.moves.urllib import parse
 
 import oauth2client.contrib.django_util
 from oauth2client.contrib.django_util import decorators
+from tests import http_mock
 from tests.contrib import django_util as tests_django_util
 
 
@@ -58,7 +59,7 @@ class OAuth2EnabledDecoratorTest(tests_django_util.TestWithDjangoEnvironment):
         self.assertEqual(response.status_code, http_client.OK)
         self.assertIsNotNone(request.oauth)
         self.assertFalse(request.oauth.has_credentials())
-        self.assertIsNone(request.oauth.http)
+        self.assertIsNone(request.oauth.http(http_mock.HttpMock()))
 
     @mock.patch('oauth2client.client.OAuth2Credentials')
     def test_has_credentials_in_storage(self, OAuth2Credentials):
@@ -80,7 +81,7 @@ class OAuth2EnabledDecoratorTest(tests_django_util.TestWithDjangoEnvironment):
         self.assertEqual(response.status_code, http_client.OK)
         self.assertEqual(response.content, b'test')
         self.assertTrue(request.oauth.has_credentials())
-        self.assertIsNotNone(request.oauth.http)
+        self.assertIsNotNone(request.oauth.http(http_mock.HttpMock))
         self.assertSetEqual(
             request.oauth.scopes,
             set(django.conf.settings.GOOGLE_OAUTH2_SCOPES))

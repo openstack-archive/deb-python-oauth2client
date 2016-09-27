@@ -24,8 +24,8 @@ from six.moves import http_client
 from six.moves.urllib import parse as urlparse
 
 from oauth2client import _helpers
+from oauth2client import _transport
 from oauth2client import client
-from oauth2client import transport
 
 
 METADATA_ROOT = 'http://metadata.google.internal/computeMetadata/v1/'
@@ -54,7 +54,7 @@ def get(http, path, root=METADATA_ROOT, recursive=None):
     url = urlparse.urljoin(root, path)
     url = _helpers._add_query_parameter(url, 'recursive', recursive)
 
-    response = transport.request(
+    response = _transport.request(
         http, url, headers=METADATA_HEADERS)
 
     if response.status == http_client.OK:
