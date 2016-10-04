@@ -1,4 +1,4 @@
-python-oauth2client (2.0.1-4) UNRELEASED; urgency=medium
+python-oauth2client (2.0.1-4) unstable; urgency=medium
 
   * d/s/options: extend-diff-ignore of .gitreview
   * d/control: Using OpenStack's Gerrit as VCS URLs.
