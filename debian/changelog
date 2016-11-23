@@ -1,3 +1,9 @@
+python-oauth2client (2.0.1-5) UNRELEASED; urgency=medium
+
+  * Bumped debhelper compat version to 10
+
+ -- Ondřej Nový <onovy@debian.org>  Thu, 24 Nov 2016 00:08:27 +0100
+
 python-oauth2client (2.0.1-4) unstable; urgency=medium
 
   * d/s/options: extend-diff-ignore of .gitreview
